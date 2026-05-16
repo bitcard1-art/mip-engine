@@ -19,6 +19,7 @@ const NAV_ITEMS = [
   { path: "/policies", label: "경계 정책", icon: BookOpen },
   { path: "/redteam", label: "Red-teaming", icon: Terminal },
   { path: "/audit", label: "감사 체인", icon: Package },
+  { path: "/guide", label: "이용 가이드", icon: BookOpen },
 ];
 
 interface MIPLayoutProps {
