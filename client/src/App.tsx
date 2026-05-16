@@ -13,6 +13,7 @@ import RedteamPage from "./pages/RedteamPage";
 import PoliciesPage from "./pages/PoliciesPage";
 import AuditPage from "./pages/AuditPage";
 import LandingPage from "./pages/LandingPage";
+import GuidePage from "./pages/GuidePage";
 
 function Router() {
   return (
@@ -26,6 +27,7 @@ function Router() {
       <Route path="/redteam" component={RedteamPage} />
       <Route path="/policies" component={PoliciesPage} />
       <Route path="/audit" component={AuditPage} />
+      <Route path="/guide" component={GuidePage} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

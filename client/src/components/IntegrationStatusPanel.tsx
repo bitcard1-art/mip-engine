@@ -4,7 +4,7 @@
  * - 최근 Webhook 이벤트 이력 (수신 성공/실패)
  * - 30초 자동 갱신
  */
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -238,7 +238,7 @@ function DlqTable({ items, emptyLabel }: { items: DlqRow[]; emptyLabel: string }
 // ─── 메인 패널 ───────────────────────────────────────────────────────────────
 
 export default function IntegrationStatusPanel() {
-  const [refetchKey, setRefetchKey] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const utils = trpc.useUtils();
 
@@ -263,14 +263,18 @@ export default function IntegrationStatusPanel() {
     { refetchInterval: 30_000 }
   );
 
-  const handleRefresh = () => {
-    setRefetchKey(k => k + 1);
-    utils.mip.integration.status.invalidate();
-    utils.mip.integration.events.invalidate();
-    utils.mip.integration.inboundEvents.invalidate();
-    utils.mip.integration.somaDlq.invalidate();
-    utils.mip.integration.loreDlq.invalidate();
-  };
+  const handleRefresh = useCallback(async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    await Promise.all([
+      utils.mip.integration.status.invalidate(),
+      utils.mip.integration.events.invalidate(),
+      utils.mip.integration.inboundEvents.invalidate(),
+      utils.mip.integration.somaDlq.invalidate(),
+      utils.mip.integration.loreDlq.invalidate(),
+    ]);
+    setTimeout(() => setIsRefreshing(false), 800);
+  }, [isRefreshing, utils]);
 
   const totalAlerts = (status?.soma.dlqPending ?? 0) + (status?.lore.dlqPending ?? 0)
     + (status?.soma.dlqAbandoned ?? 0) + (status?.lore.dlqAbandoned ?? 0);
@@ -288,9 +292,15 @@ export default function IntegrationStatusPanel() {
               </span>
             )}
           </CardTitle>
-          <Button variant="ghost" size="sm" onClick={handleRefresh} className="h-7 px-2 text-slate-400 hover:text-white">
-            <RefreshCw size={13} className="mr-1" />
-            <span className="text-xs">새로고침</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="h-7 px-2 text-slate-400 hover:text-white disabled:opacity-60"
+          >
+            <RefreshCw size={13} className={`mr-1 transition-transform duration-700 ${isRefreshing ? "animate-spin" : ""}`} />
+            <span className="text-xs">{isRefreshing ? "갱신 중..." : "새로고침"}</span>
           </Button>
         </div>
       </CardHeader>
