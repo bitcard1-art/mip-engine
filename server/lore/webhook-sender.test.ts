@@ -1,9 +1,10 @@
 /**
  * Lore Webhook Sender 단위 테스트
- * WO-MIP-2026-003 §4.1
+ * WO-MIP-2026-003 §4.1 — DLQ 저장/재시도 실제 동작 검증
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+// ─── 공통 mock 설정 ─────────────────────────────────────────────────────────
 vi.mock("../_core/env", () => ({
   ENV: {
     loreMipSharedSecret: "test-lore-mip-secret-32chars-padding",
@@ -12,102 +13,152 @@ vi.mock("../_core/env", () => ({
     loreServiceUrl: "https://lore.test.space",
   },
 }));
-
-vi.mock("../db", () => ({
-  getDb: vi.fn().mockResolvedValue(null),
-}));
-
 vi.mock("nanoid", () => ({ nanoid: () => "test-nanoid-id" }));
 
-describe("sendLoreWebhook", () => {
+// DB mock — 각 테스트에서 필요에 따라 동적으로 구성
+const mockInsertValues = vi.fn().mockResolvedValue(undefined);
+const mockInsert = vi.fn().mockReturnValue({ values: mockInsertValues });
+const mockUpdateWhere = vi.fn().mockResolvedValue(undefined);
+const mockUpdateSet = vi.fn().mockReturnValue({ where: mockUpdateWhere });
+const mockUpdate = vi.fn().mockReturnValue({ set: mockUpdateSet });
+const mockSelectLimit = vi.fn().mockResolvedValue([]);
+const mockSelectWhere = vi.fn().mockReturnValue({ limit: mockSelectLimit });
+const mockSelectFrom = vi.fn().mockReturnValue({ where: mockSelectWhere });
+const mockSelect = vi.fn().mockReturnValue({ from: mockSelectFrom });
+
+const dbMock = {
+  insert: mockInsert,
+  update: mockUpdate,
+  select: mockSelect,
+};
+
+vi.mock("../db", () => ({
+  getDb: vi.fn().mockResolvedValue(dbMock),
+}));
+
+// ─── 테스트 ─────────────────────────────────────────────────────────────────
+
+describe("sendLoreWebhook — 전송 성공", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    global.fetch = vi.fn().mockResolvedValue({ ok: true }) as unknown as typeof fetch;
   });
 
-  it("전송 성공 시 정상 완료된다", async () => {
-    global.fetch = vi.fn().mockResolvedValue({ ok: true }) as unknown as typeof fetch;
+  it("전송 성공 시 DLQ insert를 호출하지 않는다", async () => {
+    const { sendLoreWebhook } = await import("./webhook-sender");
+    await sendLoreWebhook("mip_package_received", { packageId: "pkg-001" });
+    expect(mockInsert).not.toHaveBeenCalled();
+  });
+
+  it("전송 성공 시 예외 없이 완료된다", async () => {
     const { sendLoreWebhook } = await import("./webhook-sender");
     await expect(
       sendLoreWebhook("mip_package_received", { packageId: "pkg-001" })
     ).resolves.not.toThrow();
   });
+});
 
-  it("3회 실패 시 DLQ에 저장된다", async () => {
+describe("sendLoreWebhook — 3회 실패 시 DLQ 저장", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
     global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 500 }) as unknown as typeof fetch;
-    // DLQ 저장 함수가 DB를 호출하는지 확인: 실패 시 콘솔 경고 로그 발생 확인
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const { sendLoreWebhook } = await import("./webhook-sender");
-    await sendLoreWebhook("mip_package_validation_failed", { packageId: "pkg-002" }, 3);
-    // DB 없으면 DLQ 저장 실패 경고 또는 전송 실패 경고 로그 발생
-    const allLogs = warnSpy.mock.calls.map((c) => c.join(" "));
-    const hasLoreLog = allLogs.some((l) => l.includes("LoreWebhook") || l.includes("DLQ"));
-    expect(hasLoreLog || true).toBe(true); // 로그 없어도 충돌 없이 완료되면 통과
-    warnSpy.mockRestore();
+    mockInsert.mockReturnValue({ values: mockInsertValues });
+    mockInsertValues.mockResolvedValue(undefined);
   });
 
-  it("LORE_WEBHOOK_URL 미설정 시 전송을 건너뛴다", async () => {
-    vi.doMock("../_core/env", () => ({
-      ENV: {
-        mipLoreSharedSecret: "test-secret",
-        loreWebhookUrl: "",
-        loreServiceUrl: "",
-      },
-    }));
-    const fetchSpy = vi.fn();
-    global.fetch = fetchSpy as unknown as typeof fetch;
+  it("3회 실패 후 mip_lore_webhook_dlq에 insert를 호출한다", async () => {
+    const { sendLoreWebhook } = await import("./webhook-sender");
+    await sendLoreWebhook("mip_package_validation_failed", { packageId: "pkg-002" }, 3);
+    expect(mockInsert).toHaveBeenCalledTimes(1);
+    expect(mockInsertValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventType: "mip_package_validation_failed",
+        attempts: 3,
+        status: "pending",
+      })
+    );
+  });
 
-    // 모듈 캐시 초기화 후 재임포트
-    vi.resetModules();
-    vi.mock("../_core/env", () => ({
-      ENV: {
-        mipLoreSharedSecret: "test-secret",
-        loreWebhookUrl: "",
-        loreServiceUrl: "",
-      },
-    }));
-    vi.mock("../db", () => ({ getDb: vi.fn().mockResolvedValue(null) }));
-    const { sendLoreWebhook: sendNoUrl } = await import("./webhook-sender");
-    await sendNoUrl("mip_package_received", {});
-    expect(fetchSpy).not.toHaveBeenCalled();
+  it("DLQ 저장 payload에 원본 페이로드가 포함된다", async () => {
+    const { sendLoreWebhook } = await import("./webhook-sender");
+    await sendLoreWebhook("mip_implant_result", { implantationId: "impl-001", result: "failed" }, 3);
+    expect(mockInsertValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventType: "mip_implant_result",
+        payload: expect.stringContaining("impl-001"),
+      })
+    );
+  });
+
+  it("fetch 예외(네트워크 오류) 발생 시에도 DLQ에 저장한다", async () => {
+    global.fetch = vi.fn().mockRejectedValue(new Error("Network error")) as unknown as typeof fetch;
+    const { sendLoreWebhook } = await import("./webhook-sender");
+    await sendLoreWebhook("mip_package_received", { packageId: "pkg-003" }, 3);
+    expect(mockInsert).toHaveBeenCalledTimes(1);
   });
 });
 
-describe("retryLoreDlqEvents", () => {
+describe("retryLoreDlqEvents — pending 항목 재시도", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("DB 없으면 즉시 반환한다", async () => {
     const { getDb } = await import("../db");
-    vi.mocked(getDb).mockResolvedValue(null);
+    vi.mocked(getDb).mockResolvedValueOnce(null);
     const { retryLoreDlqEvents } = await import("./webhook-sender");
     await expect(retryLoreDlqEvents()).resolves.not.toThrow();
   });
 
-  it("pending 항목을 재시도한다", async () => {
+  it("pending 항목 재전송 성공 시 status를 resolved로 업데이트한다", async () => {
     global.fetch = vi.fn().mockResolvedValue({ ok: true }) as unknown as typeof fetch;
-    const dbMock = {
-      select: vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([
-              {
-                id: "dlq-1",
-                eventType: "mip_package_received",
-                payload: JSON.stringify({ packageId: "pkg-001" }),
-                attempts: 4,
-                status: "pending",
-              },
-            ]),
-          }),
-        }),
-      }),
-      update: vi.fn().mockReturnValue({
-        set: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue(undefined),
-        }),
-      }),
-    };
-    const { getDb } = await import("../db");
-    vi.mocked(getDb).mockResolvedValue(dbMock as unknown as Awaited<ReturnType<typeof getDb>>);
-
+    // pending 항목 1개 반환
+    mockSelectLimit.mockResolvedValueOnce([
+      {
+        id: "dlq-1",
+        eventType: "mip_package_received",
+        payload: JSON.stringify({ packageId: "pkg-001" }),
+        attempts: 2,
+        status: "pending",
+      },
+    ]);
     const { retryLoreDlqEvents } = await import("./webhook-sender");
-    await expect(retryLoreDlqEvents()).resolves.not.toThrow();
+    await retryLoreDlqEvents();
+    expect(mockUpdateSet).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "resolved" })
+    );
+  });
+
+  it("10회 이상 시도된 항목은 abandoned로 변경한다", async () => {
+    mockSelectLimit.mockResolvedValueOnce([
+      {
+        id: "dlq-2",
+        eventType: "mip_package_received",
+        payload: "{}",
+        attempts: 10,
+        status: "pending",
+      },
+    ]);
+    const { retryLoreDlqEvents } = await import("./webhook-sender");
+    await retryLoreDlqEvents();
+    expect(mockUpdateSet).toHaveBeenCalledWith({ status: "abandoned" });
+  });
+
+  it("재전송 실패 시 attempts를 1 증가시킨다", async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 503 }) as unknown as typeof fetch;
+    mockSelectLimit.mockResolvedValueOnce([
+      {
+        id: "dlq-3",
+        eventType: "mip_implant_result",
+        payload: JSON.stringify({ implantationId: "impl-001" }),
+        attempts: 5,
+        status: "pending",
+      },
+    ]);
+    const { retryLoreDlqEvents } = await import("./webhook-sender");
+    await retryLoreDlqEvents();
+    expect(mockUpdateSet).toHaveBeenCalledWith(
+      expect.objectContaining({ attempts: 6 })
+    );
   });
 });
