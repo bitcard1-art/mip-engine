@@ -195,6 +195,36 @@ export const mipRouter = router({
     }),
   }),
 
+  // ── MIO Package 목록 ────────────────────────────────────────────────────────
+  packages: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      return db.select().from(mipPackages)
+        .where(eq(mipPackages.userId, String(ctx.user.id)))
+        .orderBy(desc(mipPackages.receivedAt))
+        .limit(50);
+    }),
+    listAll: protectedProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return [];
+      return db.select().from(mipPackages)
+        .orderBy(desc(mipPackages.receivedAt))
+        .limit(100);
+    }),
+    get: protectedProcedure
+      .input(z.object({ packageId: z.string() }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const [pkg] = await db.select().from(mipPackages)
+          .where(eq(mipPackages.id, input.packageId))
+          .limit(1);
+        if (!pkg) throw new TRPCError({ code: "NOT_FOUND", message: "Package not found" });
+        return pkg;
+      }),
+  }),
+
   // ── Sandbox ───────────────────────────────────────────────────────────────
   sandbox: router({
     getReport: protectedProcedure

@@ -13,6 +13,7 @@ import { toast } from "sonner";
 const NAV_ITEMS = [
   { path: "/dashboard", label: "대시보드", icon: Activity },
   { path: "/devices", label: "디바이스 관리", icon: Cpu },
+  { path: "/packages", label: "MIO Package", icon: Package },
   { path: "/implantations", label: "이식 프로세스", icon: Link2 },
   { path: "/sandbox", label: "Sandbox 검증", icon: Shield },
   { path: "/safety", label: "Safety Monitor", icon: AlertTriangle },
