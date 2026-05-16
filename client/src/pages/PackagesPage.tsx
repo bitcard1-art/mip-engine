@@ -58,7 +58,22 @@ function PackageDetailModal({
   onClose,
   onStartImplant,
 }: {
-  pkg: NonNullable<ReturnType<typeof trpc.mip.packages.listAll.useQuery>["data"]>[number];
+  pkg: {
+    id: string;
+    userId: string;
+    packageVersion: string;
+    didSignature: string;
+    hmacWatermark: string;
+    ttl: number;
+    status: string;
+    validationErrors: string | null;
+    dnaHash: string | null;
+    patternHash: string | null;
+    contextJson: string | null;
+    sourceSystem: string;
+    receivedAt: number;
+    validatedAt: number | null;
+  };
   onClose: () => void;
   onStartImplant: (packageId: string) => void;
 }) {
