@@ -8,7 +8,7 @@ import { nanoid } from "nanoid";
 import { ENV } from "../_core/env";
 import { generateSomaSignature } from "./hmac-middleware";
 import { getDb } from "../db";
-import { mipWebhookDlq } from "../../drizzle/schema";
+import { mipWebhookDlq, mipWebhookSendLogs } from "../../drizzle/schema";
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -69,6 +69,20 @@ export async function sendSomaWebhook(
 
       if (res.ok) {
         console.log(`[SomaWebhook] 전송 성공: ${eventType} (attempt ${attempt})`);
+        // 성공 이력 저장
+        const db = await getDb();
+        if (db) {
+          await db.insert(mipWebhookSendLogs).values({
+            id: nanoid(),
+            target: "soma",
+            eventType,
+            url: `${somaUrl}/api/mip/webhook`,
+            statusCode: res.status,
+            success: 1,
+            attempts: attempt,
+            sentAt: Date.now(),
+          }).catch(() => {});
+        }
         return;
       }
       console.warn(
@@ -84,8 +98,21 @@ export async function sendSomaWebhook(
     }
   }
 
-  // 3회 모두 실패 → DLQ 저장
+  // 3회 모두 실패 → DLQ 저장 + 실패 이력 저장
   await saveToDLQ(eventType, payload);
+  const db = await getDb();
+  if (db) {
+    await db.insert(mipWebhookSendLogs).values({
+      id: nanoid(),
+      target: "soma",
+      eventType,
+      url: `${somaUrl}/api/mip/webhook`,
+      success: 0,
+      attempts: retries,
+      errorMessage: "Max retries exceeded",
+      sentAt: Date.now(),
+    }).catch(() => {});
+  }
 }
 
 /**

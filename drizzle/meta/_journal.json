@@ -43,6 +43,13 @@
       "when": 1778910107985,
       "tag": "0005_swift_omega_flight",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1778911551335,
+      "tag": "0006_powerful_gauntlet",
+      "breakpoints": true
     }
   ]
 }

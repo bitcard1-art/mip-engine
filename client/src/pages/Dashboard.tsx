@@ -4,6 +4,7 @@ import { Shield, Cpu, Activity, AlertTriangle, CheckCircle, XCircle, Clock, Zap 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { IMPLANTATION_STAGES } from "../../../shared/mip-types";
+import IntegrationStatusPanel from "@/components/IntegrationStatusPanel";
 
 const STAGE_LABELS: Record<string, string> = {
   device_registration: "디바이스 등록",
@@ -181,6 +182,10 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       )}
+      {/* 연동 상태 모니터링 패널 */}
+      <div className="mt-6">
+        <IntegrationStatusPanel />
+      </div>
     </MIPLayout>
   );
 }

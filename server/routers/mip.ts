@@ -12,6 +12,11 @@ import {
   mipBoundaryPolicies,
   mipRuntimeSessions,
   mipAuditChain,
+  mipWebhookDlq,
+  mipLoreWebhookDlq,
+  mipWebhookSendLogs,
+  somaWebhookEvents,
+  lorePackageEvents,
 } from "../../drizzle/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { receiveAndValidatePackage } from "../mip/package-receiver";
@@ -318,6 +323,103 @@ export const mipRouter = router({
       .mutation(async ({ input }) => {
         console.log(`[External] Soma approval received for user ${input.userId}`);
         return { received: true, eventType: input.eventType, timestamp: Date.now() };
+      }),
+  }),
+
+  // ── 연동 상태 모니터링 ────────────────────────────────────────────────────
+  integration: router({
+    // Lore·Soma DLQ 잔여 건수 + 최근 이벤트 이력 요약
+    status: protectedProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return null;
+
+      const [somaDlqPending, loreDlqPending, somaAbandoned, loreAbandoned] = await Promise.all([
+        db.select({ count: sql<number>`count(*)` }).from(mipWebhookDlq).where(eq(mipWebhookDlq.status, "pending")),
+        db.select({ count: sql<number>`count(*)` }).from(mipLoreWebhookDlq).where(eq(mipLoreWebhookDlq.status, "pending")),
+        db.select({ count: sql<number>`count(*)` }).from(mipWebhookDlq).where(eq(mipWebhookDlq.status, "abandoned")),
+        db.select({ count: sql<number>`count(*)` }).from(mipLoreWebhookDlq).where(eq(mipLoreWebhookDlq.status, "abandoned")),
+      ]);
+
+      return {
+        soma: {
+          dlqPending: Number(somaDlqPending[0]?.count || 0),
+          dlqAbandoned: Number(somaAbandoned[0]?.count || 0),
+        },
+        lore: {
+          dlqPending: Number(loreDlqPending[0]?.count || 0),
+          dlqAbandoned: Number(loreAbandoned[0]?.count || 0),
+        },
+        updatedAt: Date.now(),
+      };
+    }),
+
+    // 최근 Webhook 발신 이력 (MIP → Soma / MIP → Lore 실제 전송 결과)
+    events: protectedProcedure
+      .input(z.object({
+        limit: z.number().min(1).max(100).default(50),
+        target: z.enum(["soma", "lore"]).optional(),
+        successOnly: z.boolean().optional(),
+      }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        const conditions: ReturnType<typeof eq>[] = [];
+        if (input.target) conditions.push(eq(mipWebhookSendLogs.target, input.target));
+        if (input.successOnly === true) conditions.push(eq(mipWebhookSendLogs.success, 1));
+        if (input.successOnly === false) conditions.push(eq(mipWebhookSendLogs.success, 0));
+        if (conditions.length > 0) {
+          return db.select().from(mipWebhookSendLogs)
+            .where(and(...conditions))
+            .orderBy(desc(mipWebhookSendLogs.sentAt))
+            .limit(input.limit);
+        }
+        return db.select().from(mipWebhookSendLogs)
+          .orderBy(desc(mipWebhookSendLogs.sentAt))
+          .limit(input.limit);
+      }),
+    // 수신 이벤트 이력 (Soma 수신 + Lore 수신 통합)
+    inboundEvents: protectedProcedure
+      .input(z.object({ limit: z.number().min(1).max(100).default(50) }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return [];
+
+        const [somaEvents, loreEvents] = await Promise.all([
+          db.select().from(somaWebhookEvents).orderBy(desc(somaWebhookEvents.createdAt)).limit(input.limit),
+          db.select().from(lorePackageEvents).orderBy(desc(lorePackageEvents.createdAt)).limit(input.limit),
+        ]);
+
+        const merged = [
+          ...somaEvents.map(e => ({ ...e, source: "soma" as const })),
+          ...loreEvents.map(e => ({ ...e, source: "lore" as const })),
+        ].sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)).slice(0, input.limit);
+
+        return merged;
+      }),
+
+    // DLQ 상세 목록 (Soma)
+    somaDlq: protectedProcedure
+      .input(z.object({ status: z.enum(["pending", "resolved", "abandoned"]).optional(), limit: z.number().default(20) }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        const query = db.select().from(mipWebhookDlq).orderBy(desc(mipWebhookDlq.failedAt)).limit(input.limit);
+        if (input.status) {
+          return db.select().from(mipWebhookDlq).where(eq(mipWebhookDlq.status, input.status)).orderBy(desc(mipWebhookDlq.failedAt)).limit(input.limit);
+        }
+        return query;
+      }),
+
+    // DLQ 상세 목록 (Lore)
+    loreDlq: protectedProcedure
+      .input(z.object({ status: z.enum(["pending", "resolved", "abandoned"]).optional(), limit: z.number().default(20) }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        if (input.status) {
+          return db.select().from(mipLoreWebhookDlq).where(eq(mipLoreWebhookDlq.status, input.status)).orderBy(desc(mipLoreWebhookDlq.failedAt)).limit(input.limit);
+        }
+        return db.select().from(mipLoreWebhookDlq).orderBy(desc(mipLoreWebhookDlq.failedAt)).limit(input.limit);
       }),
   }),
 

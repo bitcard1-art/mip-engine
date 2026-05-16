@@ -44,10 +44,14 @@ describe("sendLoreWebhook — 전송 성공", () => {
     global.fetch = vi.fn().mockResolvedValue({ ok: true }) as unknown as typeof fetch;
   });
 
-  it("전송 성공 시 DLQ insert를 호출하지 않는다", async () => {
+  it("전송 성공 시 발신 로그를 저장하고 DLQ insert는 호출하지 않는다", async () => {
     const { sendLoreWebhook } = await import("./webhook-sender");
     await sendLoreWebhook("mip_package_received", { packageId: "pkg-001" });
-    expect(mockInsert).not.toHaveBeenCalled();
+    // 성공 시 insert 1회 (발신 로그), DLQ insert 없음
+    expect(mockInsert).toHaveBeenCalledOnce();
+    const logArg = mockInsertValues.mock.calls[0][0];
+    expect(logArg.success).toBe(1);
+    expect(logArg.target).toBe("lore");
   });
 
   it("전송 성공 시 예외 없이 완료된다", async () => {
@@ -69,7 +73,9 @@ describe("sendLoreWebhook — 3회 실패 시 DLQ 저장", () => {
   it("3회 실패 후 mip_lore_webhook_dlq에 insert를 호출한다", async () => {
     const { sendLoreWebhook } = await import("./webhook-sender");
     await sendLoreWebhook("mip_package_validation_failed", { packageId: "pkg-002" }, 3);
-    expect(mockInsert).toHaveBeenCalledTimes(1);
+    // insert 2회: 발신 로그 + DLQ 저장
+    expect(mockInsert).toHaveBeenCalledTimes(2);
+    // DLQ 저장 확인 (두 번째 insert)
     expect(mockInsertValues).toHaveBeenCalledWith(
       expect.objectContaining({
         eventType: "mip_package_validation_failed",
@@ -94,7 +100,8 @@ describe("sendLoreWebhook — 3회 실패 시 DLQ 저장", () => {
     global.fetch = vi.fn().mockRejectedValue(new Error("Network error")) as unknown as typeof fetch;
     const { sendLoreWebhook } = await import("./webhook-sender");
     await sendLoreWebhook("mip_package_received", { packageId: "pkg-003" }, 3);
-    expect(mockInsert).toHaveBeenCalledTimes(1);
+    // insert 2회: 발신 로그 + DLQ 저장
+    expect(mockInsert).toHaveBeenCalledTimes(2);
   });
 });
 

@@ -83,3 +83,12 @@
 - [x] 발신 콜백 4: Package 갱신 요청 REST API
 - [x] DLQ 재시도 배치 작업 (5분 간격, 최대 10회)
 - [x] Vitest 단위 테스트: lore-hmac-middleware, lore-package-receiver, lore-webhook-sender, lore-package-revoke, lore-package-refresh
+
+## 연동 상태 모니터링 패널 (대시보드)
+
+- [x] tRPC 프로시저: mip.integration.status (Lore·Soma DLQ 건수, 최근 이벤트 이력)
+- [x] tRPC 프로시저: mip.integration.events (최근 50건 Webhook 이벤트 목록)
+- [x] UI: IntegrationStatusPanel 컴포넌트 (DLQ 건수 카드, 연동 상태 배지)
+- [x] UI: WebhookEventTable 컴포넌트 (최근 이벤트 이력 테이블, 성공/실패 구분)
+- [x] 대시보드 페이지에 연동 상태 패널 통합
+- [x] Vitest 테스트: integration.status 프로시저

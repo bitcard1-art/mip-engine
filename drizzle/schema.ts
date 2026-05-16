@@ -314,3 +314,20 @@ export const mipPackageRefreshRequests = mysqlTable("mip_package_refresh_request
 });
 export type MipPackageRefreshRequest = typeof mipPackageRefreshRequests.$inferSelect;
 export type InsertMipPackageRefreshRequest = typeof mipPackageRefreshRequests.$inferInsert;
+
+// ─── Webhook 발신 전송 이력 로그 ─────────────────────────────────────────────
+// MIP → Soma / MIP → Lore 발신 Webhook 전송 결과 기록
+export const mipWebhookSendLogs = mysqlTable("mip_webhook_send_logs", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  target: mysqlEnum("target", ["soma", "lore"]).notNull(),           // 발신 대상
+  eventType: varchar("event_type", { length: 80 }).notNull(),        // 이벤트 타입
+  url: varchar("url", { length: 500 }).notNull(),                    // 전송 URL
+  statusCode: int("status_code"),                                    // HTTP 응답 코드 (null=네트워크 오류)
+  success: int("success").notNull().default(0),                      // 1=성공, 0=실패
+  attempts: int("attempts").notNull().default(1),                    // 시도 횟수
+  errorMessage: text("error_message"),                               // 실패 사유
+  sentAt: bigint("sent_at", { mode: "number" }).notNull(),           // 전송 시각 (UTC ms)
+  resolvedAt: bigint("resolved_at", { mode: "number" }),             // DLQ 재시도 성공 시각
+});
+export type MipWebhookSendLog = typeof mipWebhookSendLogs.$inferSelect;
+export type InsertMipWebhookSendLog = typeof mipWebhookSendLogs.$inferInsert;
