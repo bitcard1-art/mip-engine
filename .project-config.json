@@ -1,0 +1,43 @@
+{
+  "build_command": "pnpm run build",
+  "capabilities": [
+    "server",
+    "db",
+    "user"
+  ],
+  "dev_command": "pnpm run dev",
+  "env_vars": {
+    "DATABASE_URL": "mysql://cvqB1bqPhEJdjPc.de41d77108e9:lf06PwXUe8NEu4vaed76@gateway06.us-east-1.prod.aws.tidbcloud.com:4000/EDMJNrQWh4S6sL4GhmxVJr?ssl={\"rejectUnauthorized\":true}"
+  },
+  "experiments": [
+    "no_db_push"
+  ],
+  "git_remote": {
+    "repo_url": "s3://vida-prod-gitrepo/webdev-git/310519663555860323/EDMJNrQWh4S6sL4GhmxVJr",
+    "access_key_id": "ASIAZV3A2ECZHDTGUNV7",
+    "secret_access_key": "3iLorXp2KXThgfvg/YDnwA36xqMmrSdvJLZT7Hul",
+    "session_token": "IQoJb3JpZ2luX2VjELv//////////wEaCXVzLWVhc3QtMSJHMEUCIHILMtPYMG1YaIL/Zcqc5TytbBx9/mz9D+3aBpiPUBu8AiEA9F6eDRbu1Q/h4SN2fBMaWrAmnWhyAXEwCof8Lh94MVYq/wMIhP//////////ARAEGgw2NjUzODYwOTg4NjYiDCzcK13CNEpP+LxEMSrTA4AbBJwXsrGdI8C7XZXHlntKTj30tY+V/4AGjgYlsfgpPEXAi2VRmv8LL5R7NgFV/IsYt2IFFcgRISCz/KcdmQVz1nPtoxcbffSu/WEGJBF+BopfFYzU2hylB9NNHm6grLpRn6eh/I2pUWVeWNHoUkp0GiNpuvBWr+YNODX/mMZ2pxccAQxGLQZN6n/B4bn0y3bWy5ubo5VFJfCGDoS4K8GthUqc6YVC0rlePpw/s3D35eVA54ytQ/yPUY+7TJ0sF4AKK9FPnkxFxHLejlPeaWsG53BzAsTyJzsPgnpTq+47JR0Q/K6uJ7vZeDvOBam97JpB9E9qNIMvuu0QyUdvU7vcZB4xLM6IUpxU3FhWGkMAh88OYOOVkyOmZOy9c4XCoeutQ/ImfpS23vrYBmcRNX2VjnFzbK+Ld+B97Ubrl1dFsUwHrrPasBa9XN/TbjblXeWYyDzJzVNVpA+S3tPcR2CJTi96bp2Z/tVjtOz+Iva9N7fsrWv2EMe9l2pfrbIO4NeULkRr6icoBWA/ZR2a7u6UmDzTQzU4sUJdVX+myHysiNbZXAB2yXU0Grct29QAk117y9WkeTeCs1vaPcI0pQamuyAwLnkfr9nMfE0BJ3l7qhT8MMCqn9AGOp0B1uXLGNdB0RmqauICAY9H0YYcPBdMobv2j93wrGlh5aQPeOHAFxPD4MFHBCA+Npud/O9Fjk36xZhQssEbTgv1/C7ERu+vXW7MeXxe87wW5IEOrQ6IQqYeSpDuG+zaFpb3eG9Uk/VeETOIDqt3JgWyU6AR/brNxsHLBwXupKEJ+BwiGi8pVPGsrAJLey4W6NDP+XcWpfb0XdK2CkUPEA==",
+    "expiration": "2026-05-16T14:24:00.000Z"
+  },
+  "name": "mip-engine",
+  "path": "/home/ubuntu/mip-engine",
+  "port": 3000,
+  "secrets": {
+    "BUILT_IN_FORGE_API_KEY": "URFPyL5LCSJupJ8rQyk6SK",
+    "BUILT_IN_FORGE_API_URL": "https://forge.manus.ai",
+    "JWT_SECRET": "Qu6bjcEe4vTGN6CYjwVQtT",
+    "OAUTH_SERVER_URL": "https://api.manus.im",
+    "OWNER_NAME": "GD LEE",
+    "OWNER_OPEN_ID": "nBUk9w9RK9KnWEXix8NGCW",
+    "VITE_ANALYTICS_ENDPOINT": "https://manus-analytics.com",
+    "VITE_ANALYTICS_WEBSITE_ID": "b24c926b-8ca5-42ef-b5d5-db190eddc659",
+    "VITE_APP_ID": "EDMJNrQWh4S6sL4GhmxVJr",
+    "VITE_APP_LOGO": "",
+    "VITE_APP_TITLE": "MIP Engine — MIO Implantation Protocol",
+    "VITE_FRONTEND_FORGE_API_KEY": "H4tnS86QK4LFrfYAYbQuhR",
+    "VITE_FRONTEND_FORGE_API_URL": "https://forge.manus.ai",
+    "VITE_OAUTH_PORTAL_URL": "https://manus.im"
+  },
+  "template_id": "web-db-user",
+  "test_command": "pnpm test"
+}
