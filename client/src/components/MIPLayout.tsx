@@ -95,18 +95,20 @@ export default function MIPLayout({ children, title }: MIPLayoutProps) {
               const Icon = item.icon;
               const isActive = location === item.path;
               return (
-                <Link key={item.path} href={item.path}>
-                  <a className={`
+                <Link
+                  key={item.path}
+                  href={item.path}
+                  className={`
                     flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-all duration-150
                     ${isActive
                       ? "bg-sidebar-primary/20 text-sidebar-primary font-medium"
                       : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                     }
-                  `}>
-                    <Icon className="w-4 h-4 shrink-0" />
-                    <span>{item.label}</span>
-                    {isActive && <ChevronRight className="w-3 h-3 ml-auto" />}
-                  </a>
+                  `}
+                >
+                  <Icon className="w-4 h-4 shrink-0" />
+                  <span>{item.label}</span>
+                  {isActive && <ChevronRight className="w-3 h-3 ml-auto" />}
                 </Link>
               );
             })}
