@@ -12,4 +12,9 @@ export const ENV = {
   mipSomaSharedSecret: process.env.MIP_SOMA_SHARED_SECRET ?? "",
   somaWebhookUrl: process.env.SOMA_WEBHOOK_URL ?? "https://soma.mysoma.space",
   somaServiceUrl: process.env.SOMA_SERVICE_URL ?? "https://soma.mysoma.space",
+  // Lore ↔ MIP 연동
+  loreMipSharedSecret: process.env.LORE_MIP_SHARED_SECRET ?? "",
+  mipLoreSharedSecret: process.env.MIP_LORE_SHARED_SECRET ?? "",
+  loreWebhookUrl: process.env.LORE_WEBHOOK_URL ?? "https://lore.mysoma.space",
+  loreServiceUrl: process.env.LORE_SERVICE_URL ?? "https://lore.mysoma.space",
 };

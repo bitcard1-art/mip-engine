@@ -266,3 +266,51 @@ export const mipWebhookDlq = mysqlTable("mip_webhook_dlq", {
 });
 export type MipWebhookDlq = typeof mipWebhookDlq.$inferSelect;
 export type InsertMipWebhookDlq = typeof mipWebhookDlq.$inferInsert;
+
+// ─── Lore Integration Table 1: lore_package_events ──────────────────────────
+// Lore로부터 수신한 패키지 이벤트 로그 (멱등성 보장)
+export const lorePackageEvents = mysqlTable("lore_package_events", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  eventId: varchar("event_id", { length: 36 }).notNull().unique(), // 멱등성 키
+  eventType: varchar("event_type", { length: 50 }).notNull(),
+  packageId: varchar("package_id", { length: 36 }).notNull(),
+  userId: varchar("user_id", { length: 64 }).notNull(),
+  payload: text("payload").notNull(), // JSON
+  processedAt: bigint("processed_at", { mode: "number" }),
+  status: mysqlEnum("status", ["received", "processed", "failed"]).default("received").notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+});
+export type LorePackageEvent = typeof lorePackageEvents.$inferSelect;
+export type InsertLorePackageEvent = typeof lorePackageEvents.$inferInsert;
+
+// ─── Lore Integration Table 2: mip_lore_webhook_dlq ─────────────────────────
+// MIP → Lore 전송 실패 Dead Letter Queue
+export const mipLoreWebhookDlq = mysqlTable("mip_lore_webhook_dlq", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  eventType: varchar("event_type", { length: 50 }).notNull(),
+  payload: text("payload").notNull(), // JSON
+  attempts: int("attempts").default(0),
+  lastAttemptAt: bigint("last_attempt_at", { mode: "number" }),
+  failedAt: bigint("failed_at", { mode: "number" }).notNull(),
+  resolvedAt: bigint("resolved_at", { mode: "number" }),
+  status: mysqlEnum("status", ["pending", "resolved", "abandoned"]).default("pending").notNull(),
+});
+export type MipLoreWebhookDlq = typeof mipLoreWebhookDlq.$inferSelect;
+export type InsertMipLoreWebhookDlq = typeof mipLoreWebhookDlq.$inferInsert;
+
+// ─── Lore Integration Table 3: mip_package_refresh_requests ─────────────────
+// MIP → Lore 패키지 갱신 요청 추적
+export const mipPackageRefreshRequests = mysqlTable("mip_package_refresh_requests", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  requestId: varchar("request_id", { length: 36 }).notNull().unique(),
+  packageId: varchar("package_id", { length: 36 }).notNull(),
+  userId: varchar("user_id", { length: 64 }).notNull(),
+  reason: varchar("reason", { length: 50 }).notNull(),
+  urgency: mysqlEnum("urgency", ["low", "medium", "high"]).default("medium").notNull(),
+  status: mysqlEnum("status", ["pending", "completed", "failed"]).default("pending").notNull(),
+  requestedAt: bigint("requested_at", { mode: "number" }).notNull(),
+  completedAt: bigint("completed_at", { mode: "number" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+});
+export type MipPackageRefreshRequest = typeof mipPackageRefreshRequests.$inferSelect;
+export type InsertMipPackageRefreshRequest = typeof mipPackageRefreshRequests.$inferInsert;

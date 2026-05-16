@@ -10,6 +10,8 @@ import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import somaRouter from "../soma/soma-router";
 import { startDlqRetryScheduler } from "../soma/dlq-scheduler";
+import loreRouter from "../lore/lore-router";
+import { startLoreDlqRetryScheduler } from "../lore/dlq-scheduler";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -50,6 +52,10 @@ async function startServer() {
   app.use("/api/soma", somaRouter);
   // DLQ 재시도 배치 스케줄러 시작
   startDlqRetryScheduler();
+  // Lore ↔ MIP 연동 라우터
+  app.use("/api/lore", loreRouter);
+  // Lore DLQ 재시도 배치 스케줄러 시작
+  startLoreDlqRetryScheduler();
   // tRPC API
   app.use(
     "/api/trpc",

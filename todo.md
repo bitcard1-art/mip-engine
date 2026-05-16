@@ -66,3 +66,20 @@
 - [x] 발신 콜백 4: mip_session_terminated (세션 종료)
 - [x] DLQ 재시도 배치 작업 (5분 간격)
 - [x] Vitest 단위 테스트: soma-webhook-receiver, soma-webhook-sender, implant-approval-handler, kill-switch-handler
+
+## WO-MIP-2026-003: Lore ↔ MIP 연동 인터페이스
+
+- [ ] DB 스키마 추가: lore_package_events, mip_lore_webhook_dlq, mip_package_refresh_requests 테이블
+- [ ] 환경변수 등록: LORE_MIP_SHARED_SECRET, MIP_LORE_SHARED_SECRET, LORE_WEBHOOK_URL, LORE_SERVICE_URL
+- [ ] HMAC 서명 검증 미들웨어 구현 (Lore 전용, Replay Attack ±5분 방지)
+- [ ] 공통 Lore Webhook 발신 함수 구현 (재시도 3회 + DLQ 저장)
+- [ ] 수신 인터페이스 1: POST /api/lore/packages/submit (MIO Package 전송 수신)
+- [ ] 수신 인터페이스 2: POST /api/lore/packages/update (Package 갱신 알림)
+- [ ] 수신 인터페이스 3: POST /api/lore/packages/revoke (Package 철회 요청)
+- [ ] 수신 인터페이스 4: POST /api/lore/packages/dna-ready (DNA 재생성 완료 알림)
+- [ ] 발신 콜백 1: mip_package_received (Package 수신 확인)
+- [ ] 발신 콜백 2: mip_package_validation_failed (Package 검증 실패 알림)
+- [ ] 발신 콜백 3: mip_implant_result (이식 완료 결과 보고)
+- [ ] 발신 콜백 4: Package 갱신 요청 REST API
+- [ ] DLQ 재시도 배치 작업 (5분 간격, 최대 10회)
+- [ ] Vitest 단위 테스트: lore-hmac-middleware, lore-package-receiver, lore-webhook-sender, lore-package-revoke, lore-package-refresh
