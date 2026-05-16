@@ -145,7 +145,7 @@ export default function Dashboard() {
                       </span>
                       <span className="text-xs text-muted-foreground">Level {log.safetyLevel}</span>
                       <span className="text-xs text-muted-foreground ml-auto">
-                        {new Date(log.timestamp).toLocaleTimeString("ko-KR")}
+                        {log.timestamp ? new Date(log.timestamp).toLocaleTimeString("ko-KR") : "-"}
                       </span>
                     </div>
                     <p className="text-xs text-foreground line-clamp-2">{log.description}</p>

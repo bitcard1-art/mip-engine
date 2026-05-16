@@ -15,6 +15,27 @@
       "when": 1778898436482,
       "tag": "0001_windy_retro_girl",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1778902687200,
+      "tag": "0002_wise_lethal_legion",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1778903541255,
+      "tag": "0003_fancy_gargoyle",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1778903576845,
+      "tag": "0004_tidy_nextwave",
+      "breakpoints": true
     }
   ]
 }

@@ -199,6 +199,8 @@ export async function activateRuntime(
         killSwitchTriggered: false,
         heartbeatAt: now,
         startedAt: now,
+        createdAt: now,
+        updatedAt: now,
       });
 
       // 디바이스 lastSeen 업데이트

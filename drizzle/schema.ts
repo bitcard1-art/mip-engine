@@ -72,6 +72,7 @@ export const mipImplantations = mysqlTable("mip_implantations", {
   userId: varchar("user_id", { length: 36 }).notNull(),
   deviceId: varchar("device_id", { length: 36 }).notNull(),
   packageId: varchar("package_id", { length: 36 }).notNull(),
+  eventId: varchar("event_id", { length: 36 }), // Soma 이식 승인 이벤트 ID (멱등성)
   stage: mysqlEnum("stage", [
     "device_registration",
     "trust_verification",
@@ -86,9 +87,12 @@ export const mipImplantations = mysqlTable("mip_implantations", {
   stageHistory: text("stage_history"), // JSON array of stage transitions
   sandboxReportId: varchar("sandbox_report_id", { length: 36 }),
   activationToken: varchar("activation_token", { length: 128 }),
+  progress: int("progress").default(0), // 0~100
   startedAt: bigint("started_at", { mode: "number" }).notNull(),
   completedAt: bigint("completed_at", { mode: "number" }),
   errorMessage: text("error_message"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
 });
 
 export type MipImplantation = typeof mipImplantations.$inferSelect;
@@ -161,9 +165,12 @@ export const mipRuntimeSessions = mysqlTable("mip_runtime_sessions", {
   isolationLayerActive: boolean("isolation_layer_active").default(true).notNull(),
   killSwitchTriggered: boolean("kill_switch_triggered").default(false).notNull(),
   killSwitchReason: text("kill_switch_reason"),
+  terminationReason: varchar("termination_reason", { length: 50 }),
   heartbeatAt: bigint("heartbeat_at", { mode: "number" }),
   startedAt: bigint("started_at", { mode: "number" }).notNull(),
   terminatedAt: bigint("terminated_at", { mode: "number" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
 });
 
 export type MipRuntimeSession = typeof mipRuntimeSessions.$inferSelect;
@@ -174,8 +181,9 @@ export type InsertMipRuntimeSession = typeof mipRuntimeSessions.$inferInsert;
 export const mipSafetyLogs = mysqlTable("mip_safety_logs", {
   id: varchar("id", { length: 36 }).primaryKey(),
   sessionId: varchar("session_id", { length: 36 }).notNull(),
-  implantationId: varchar("implantation_id", { length: 36 }).notNull(),
+  implantationId: varchar("implantation_id", { length: 36 }),
   userId: varchar("user_id", { length: 36 }).notNull(),
+  deviceId: varchar("device_id", { length: 36 }),
   safetyLevel: int("safety_level").notNull(), // 1~5
   eventType: mysqlEnum("event_type", [
     "anomaly_detected",
@@ -187,13 +195,18 @@ export const mipSafetyLogs = mysqlTable("mip_safety_logs", {
     "soma_notified",
     "threshold_adjusted",
   ]).notNull(),
-  severity: mysqlEnum("severity", ["info", "warning", "critical", "emergency"]).default("info").notNull(),
-  description: text("description").notNull(),
+  severity: mysqlEnum("severity", ["info", "warning", "critical", "emergency", "high", "low", "medium"]).default("info").notNull(),
+  description: text("description"),
+  detail: text("detail"),
+  autoAction: text("auto_action"),
+  requiresUserAction: boolean("requires_user_action").default(false).notNull(),
+  resolved: boolean("resolved").default(false).notNull(),
   policyId: varchar("policy_id", { length: 36 }),
   autoResolved: boolean("auto_resolved").default(false).notNull(),
   somaNotified: boolean("soma_notified").default(false).notNull(),
-  metaJson: text("meta_json"), // 추가 메타데이터 JSON
-  timestamp: bigint("timestamp", { mode: "number" }).notNull(),
+  metaJson: text("meta_json"),
+  timestamp: bigint("timestamp", { mode: "number" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
 });
 
 export type MipSafetyLog = typeof mipSafetyLogs.$inferSelect;
@@ -224,3 +237,32 @@ export const mipAuditChain = mysqlTable("mip_audit_chain", {
 
 export type MipAuditChain = typeof mipAuditChain.$inferSelect;
 export type InsertMipAuditChain = typeof mipAuditChain.$inferInsert;
+
+// ─── Soma Integration Table 1: soma_webhook_events ──────────────────────────
+// Soma로부터 수신한 Webhook 이벤트 로그 (멱등성 보장)
+export const somaWebhookEvents = mysqlTable("soma_webhook_events", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  eventId: varchar("event_id", { length: 36 }).notNull().unique(), // 멱등성 키
+  eventType: varchar("event_type", { length: 50 }).notNull(),
+  payload: text("payload").notNull(), // JSON
+  processedAt: bigint("processed_at", { mode: "number" }),
+  status: mysqlEnum("status", ["received", "processed", "failed"]).default("received").notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+});
+export type SomaWebhookEvent = typeof somaWebhookEvents.$inferSelect;
+export type InsertSomaWebhookEvent = typeof somaWebhookEvents.$inferInsert;
+
+// ─── Soma Integration Table 2: mip_webhook_dlq ──────────────────────────────
+// MIP → Soma 전송 실패 Dead Letter Queue
+export const mipWebhookDlq = mysqlTable("mip_webhook_dlq", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  eventType: varchar("event_type", { length: 50 }).notNull(),
+  payload: text("payload").notNull(), // JSON
+  attempts: int("attempts").default(0),
+  lastAttemptAt: bigint("last_attempt_at", { mode: "number" }),
+  failedAt: bigint("failed_at", { mode: "number" }).notNull(),
+  resolvedAt: bigint("resolved_at", { mode: "number" }),
+  status: mysqlEnum("status", ["pending", "resolved", "abandoned"]).default("pending").notNull(),
+});
+export type MipWebhookDlq = typeof mipWebhookDlq.$inferSelect;
+export type InsertMipWebhookDlq = typeof mipWebhookDlq.$inferInsert;

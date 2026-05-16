@@ -7,17 +7,18 @@
   ],
   "dev_command": "pnpm run dev",
   "env_vars": {
-    "DATABASE_URL": "mysql://cvqB1bqPhEJdjPc.de41d77108e9:lf06PwXUe8NEu4vaed76@gateway06.us-east-1.prod.aws.tidbcloud.com:4000/EDMJNrQWh4S6sL4GhmxVJr?ssl={\"rejectUnauthorized\":true}"
+    "DATABASE_URL": "mysql://cvqB1bqPhEJdjPc.de41d77108e9:lf06PwXUe8NEu4vaed76@gateway06.us-east-1.prod.aws.tidbcloud.com:4000/EDMJNrQWh4S6sL4GhmxVJr?ssl={\"rejectUnauthorized\":true}",
+    "DRIZZLE_DATABASE_URL": "mysql://cvqB1bqPhEJdjPc.de41d77108e9:lf06PwXUe8NEu4vaed76@gateway06.us-east-1.prod.aws.tidbcloud.com:4000/EDMJNrQWh4S6sL4GhmxVJr?ssl={\"rejectUnauthorized\":true}"
   },
   "experiments": [
     "no_db_push"
   ],
   "git_remote": {
     "repo_url": "s3://vida-prod-gitrepo/webdev-git/310519663555860323/EDMJNrQWh4S6sL4GhmxVJr",
-    "access_key_id": "ASIAZV3A2ECZHDTGUNV7",
-    "secret_access_key": "3iLorXp2KXThgfvg/YDnwA36xqMmrSdvJLZT7Hul",
-    "session_token": "IQoJb3JpZ2luX2VjELv//////////wEaCXVzLWVhc3QtMSJHMEUCIHILMtPYMG1YaIL/Zcqc5TytbBx9/mz9D+3aBpiPUBu8AiEA9F6eDRbu1Q/h4SN2fBMaWrAmnWhyAXEwCof8Lh94MVYq/wMIhP//////////ARAEGgw2NjUzODYwOTg4NjYiDCzcK13CNEpP+LxEMSrTA4AbBJwXsrGdI8C7XZXHlntKTj30tY+V/4AGjgYlsfgpPEXAi2VRmv8LL5R7NgFV/IsYt2IFFcgRISCz/KcdmQVz1nPtoxcbffSu/WEGJBF+BopfFYzU2hylB9NNHm6grLpRn6eh/I2pUWVeWNHoUkp0GiNpuvBWr+YNODX/mMZ2pxccAQxGLQZN6n/B4bn0y3bWy5ubo5VFJfCGDoS4K8GthUqc6YVC0rlePpw/s3D35eVA54ytQ/yPUY+7TJ0sF4AKK9FPnkxFxHLejlPeaWsG53BzAsTyJzsPgnpTq+47JR0Q/K6uJ7vZeDvOBam97JpB9E9qNIMvuu0QyUdvU7vcZB4xLM6IUpxU3FhWGkMAh88OYOOVkyOmZOy9c4XCoeutQ/ImfpS23vrYBmcRNX2VjnFzbK+Ld+B97Ubrl1dFsUwHrrPasBa9XN/TbjblXeWYyDzJzVNVpA+S3tPcR2CJTi96bp2Z/tVjtOz+Iva9N7fsrWv2EMe9l2pfrbIO4NeULkRr6icoBWA/ZR2a7u6UmDzTQzU4sUJdVX+myHysiNbZXAB2yXU0Grct29QAk117y9WkeTeCs1vaPcI0pQamuyAwLnkfr9nMfE0BJ3l7qhT8MMCqn9AGOp0B1uXLGNdB0RmqauICAY9H0YYcPBdMobv2j93wrGlh5aQPeOHAFxPD4MFHBCA+Npud/O9Fjk36xZhQssEbTgv1/C7ERu+vXW7MeXxe87wW5IEOrQ6IQqYeSpDuG+zaFpb3eG9Uk/VeETOIDqt3JgWyU6AR/brNxsHLBwXupKEJ+BwiGi8pVPGsrAJLey4W6NDP+XcWpfb0XdK2CkUPEA==",
-    "expiration": "2026-05-16T14:24:00.000Z"
+    "access_key_id": "ASIAZV3A2ECZHB6GU5BX",
+    "secret_access_key": "sqcYVLXoQeQINQDFI/okByJ2HJWcKm/OvgQChGlq",
+    "session_token": "IQoJb3JpZ2luX2VjELz//////////wEaCXVzLWVhc3QtMSJHMEUCIQDLKn6gjab1vT+mwmUnQ8CqU7qeiwQlzf+eTXieMyy8/QIgO3EV9+q2A/xi4aTw0dUdbXuweu4TW8g7J9GBz3cn0Roq/wMIhf//////////ARAEGgw2NjUzODYwOTg4NjYiDPpqACRX+ePgUHdVjCrTA5KBkUUxYtl+RtIIsJnqNryULWMLsotRR24WK1lyt1UD5L1MxC+ROXAvKEfRXhgmgdZijCNrHz4dZ3CqH61mAAxwxiUvxpFaiENx0g+Kk+QGdwUMKotTEpKfV1ud+c0G8wtNqw3XO6/GzYi5Prtyl5ImmsF9nF2i81o/w/yRlL7ShcPuelbND80WCQnTYm0ivu92Qa7ofuyYdQo5MNEzpAqLg6E/to0tLv+/2uU1VHCgAkrhn4MqRVOLOHglFeC/eO86menZ3h8zH3iVU8VBMkphvgF2ZHuN2I5baRk7zqGhoQRWvkw4CDofMFYsPWLmQTFRRTbBUdg1iCda6EqrcSCxuJuslvzVNLIuq24QQ6bYzob2Nucn2ouPKeLheXCce7G8ife5xN89MuDa5cshq3/f+Wf/vX7DlRtmZwiq+Ygcvlvb2yJj8P6z0BxCPz9NqNxQ26gciJf8WEPALw0sHxIUJOlLKI1Ho9bbr8QYLy8H2LqK5oP0mpZH4i6llQiu9/ZxwCCMYZJ6L9OtSoBSc+A2kUbW8oPleWqi7j/1T0dNxQdMFUIqOv4t1kRnES0UAB0GVoxjlU/lKV1KkogfVh1jhz2nIILwvZyPVLtfEaNbSyncMJPSn9AGOp0Box8EJvQZZOeT5bS8K3qxmc2ConVdzTnsd9QMjFLjninIMLOQqUwgOwEbf5NWlalwDl/QZPx1yFvIRP9cLtREdB2dCd5J1vjZOPDE2ozvrsXVWqSh+WCB7LW2wITxFVQ3mCB9TnbW+cJ4jo7RzOaq09qctGqXl94j+Wy9cHN4dFAcBFsNQ2sjU0UVJOHrvQLaoIScFSv6jp3VHz4yJQ==",
+    "expiration": "2026-05-16T15:48:35.000Z"
   },
   "name": "mip-engine",
   "path": "/home/ubuntu/mip-engine",
@@ -26,13 +27,17 @@
     "BUILT_IN_FORGE_API_KEY": "URFPyL5LCSJupJ8rQyk6SK",
     "BUILT_IN_FORGE_API_URL": "https://forge.manus.ai",
     "JWT_SECRET": "Qu6bjcEe4vTGN6CYjwVQtT",
+    "MIP_SOMA_SHARED_SECRET": "308c3c63d6ed0ceed96a86130a88b749909c21b729a51740e76501ef94e13fcd",
     "OAUTH_SERVER_URL": "https://api.manus.im",
     "OWNER_NAME": "GD LEE",
     "OWNER_OPEN_ID": "nBUk9w9RK9KnWEXix8NGCW",
+    "SOMA_MIP_SHARED_SECRET": "4697c7c49a85e97938a26c3d59b6c9073f8aa87b82bf578688fac851cdde35e9",
+    "SOMA_SERVICE_URL": "https://soma.mysoma.space",
+    "SOMA_WEBHOOK_URL": "https://soma.mysoma.space",
     "VITE_ANALYTICS_ENDPOINT": "https://manus-analytics.com",
     "VITE_ANALYTICS_WEBSITE_ID": "b24c926b-8ca5-42ef-b5d5-db190eddc659",
     "VITE_APP_ID": "EDMJNrQWh4S6sL4GhmxVJr",
-    "VITE_APP_LOGO": "",
+    "VITE_APP_LOGO": "https://files.manuscdn.com/user_upload_by_module/web_dev_logo/310519663555860323/dFpocUApDyPddaRy.png",
     "VITE_APP_TITLE": "MIP Engine — MIO Implantation Protocol",
     "VITE_FRONTEND_FORGE_API_KEY": "H4tnS86QK4LFrfYAYbQuhR",
     "VITE_FRONTEND_FORGE_API_URL": "https://forge.manus.ai",

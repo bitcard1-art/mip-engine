@@ -7,4 +7,9 @@ export const ENV = {
   isProduction: process.env.NODE_ENV === "production",
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
+  // Soma ↔ MIP 연동
+  somaMipSharedSecret: process.env.SOMA_MIP_SHARED_SECRET ?? "",
+  mipSomaSharedSecret: process.env.MIP_SOMA_SHARED_SECRET ?? "",
+  somaWebhookUrl: process.env.SOMA_WEBHOOK_URL ?? "https://soma.mysoma.space",
+  somaServiceUrl: process.env.SOMA_SERVICE_URL ?? "https://soma.mysoma.space",
 };

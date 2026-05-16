@@ -8,6 +8,8 @@ import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import somaRouter from "../soma/soma-router";
+import { startDlqRetryScheduler } from "../soma/dlq-scheduler";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -32,10 +34,22 @@ async function startServer() {
   const app = express();
   const server = createServer(app);
   // Configure body parser with larger size limit for file uploads
-  app.use(express.json({ limit: "50mb" }));
+  // rawBody 보존 (HMAC 서명 검증용)
+  app.use(
+    express.json({
+      limit: "50mb",
+      verify: (req: express.Request & { rawBody?: Buffer }, _res, buf) => {
+        req.rawBody = buf;
+      },
+    })
+  );
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerStorageProxy(app);
   registerOAuthRoutes(app);
+  // Soma ↔ MIP 연동 라우터
+  app.use("/api/soma", somaRouter);
+  // DLQ 재시도 배치 스케줄러 시작
+  startDlqRetryScheduler();
   // tRPC API
   app.use(
     "/api/trpc",

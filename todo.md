@@ -49,3 +49,20 @@
 ## Phase 7: 최종 검증
 - [x] TypeScript 오류 제로 (pnpm check 통과)
 - [x] 전체 79개 테스트 통과 (8개 테스트 파일)
+
+## WO-MIP-2026-002: Soma ↔ MIP 연동 인터페이스
+
+- [x] DB 스키마 추가: soma_webhook_events, mip_webhook_dlq 테이블
+- [x] 환경변수 등록: SOMA_MIP_SHARED_SECRET, MIP_SOMA_SHARED_SECRET, SOMA_WEBHOOK_URL, SOMA_SERVICE_URL
+- [x] HMAC 서명 검증 미들웨어 (Replay Attack ±5분 방지 포함)
+- [x] 공통 Soma Webhook 발신 함수 (재시도 3회 + DLQ 저장)
+- [x] 수신 인터페이스 1: POST /api/soma/webhook/implant-approved (이식 승인 이벤트)
+- [x] 수신 인터페이스 2: POST /api/soma/devices/register (디바이스 등록)
+- [x] 수신 인터페이스 3: GET /api/soma/implant/:id/status (이식 상태 조회)
+- [x] 수신 인터페이스 4: POST /api/soma/sessions/:id/kill (Kill Switch)
+- [x] 발신 콜백 1: mip_implant_progress (이식 단계별 진행 상태)
+- [x] 발신 콜백 2: mip_safety_alert (Safety Monitor 이상 이벤트)
+- [x] 발신 콜백 3: mip_live_activated (Live Activation 완료)
+- [x] 발신 콜백 4: mip_session_terminated (세션 종료)
+- [x] DLQ 재시도 배치 작업 (5분 간격)
+- [x] Vitest 단위 테스트: soma-webhook-receiver, soma-webhook-sender, implant-approval-handler, kill-switch-handler

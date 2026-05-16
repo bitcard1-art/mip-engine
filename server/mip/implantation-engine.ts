@@ -59,6 +59,8 @@ export async function startImplantation(input: ImplantationStartInput): Promise<
     status: "pending",
     stageHistory: JSON.stringify([]),
     startedAt: now,
+    createdAt: now,
+    updatedAt: now,
   });
 
   await appendAuditChain({

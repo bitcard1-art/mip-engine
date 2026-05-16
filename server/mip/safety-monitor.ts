@@ -205,6 +205,7 @@ export async function detectAndAlertAnomaly(
         autoResolved: event.autoResolved,
         somaNotified: false,
         timestamp: Date.now(),
+        createdAt: Date.now(),
       });
     } catch (err) {
       console.error("[SafetyMonitor] Failed to log safety event:", err);

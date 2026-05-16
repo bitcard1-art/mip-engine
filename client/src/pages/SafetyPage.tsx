@@ -6,10 +6,13 @@ import { Button } from "@/components/ui/button";
 import { AlertTriangle, Activity, Zap, RefreshCw, Shield } from "lucide-react";
 import { toast } from "sonner";
 
-const SEVERITY_CONFIG = {
+const SEVERITY_CONFIG: Record<string, { label: string; bg: string; text: string; border: string }> = {
   emergency: { label: "긴급", bg: "bg-red-500/10", text: "text-red-400", border: "border-red-500/20" },
   critical: { label: "심각", bg: "bg-orange-500/10", text: "text-orange-400", border: "border-orange-500/20" },
+  high: { label: "높음", bg: "bg-orange-500/10", text: "text-orange-400", border: "border-orange-500/20" },
   warning: { label: "경고", bg: "bg-yellow-500/10", text: "text-yellow-400", border: "border-yellow-500/20" },
+  medium: { label: "중간", bg: "bg-yellow-500/10", text: "text-yellow-400", border: "border-yellow-500/20" },
+  low: { label: "낮음", bg: "bg-green-500/10", text: "text-green-400", border: "border-green-500/20" },
   info: { label: "정보", bg: "bg-blue-500/10", text: "text-blue-400", border: "border-blue-500/20" },
 };
 
@@ -186,7 +189,7 @@ export default function SafetyPage() {
                       <span className="text-xs text-muted-foreground">Level {log.safetyLevel}</span>
                       <span className="text-xs text-muted-foreground">{EVENT_TYPE_LABELS[log.eventType] || log.eventType}</span>
                       <span className="text-xs text-muted-foreground ml-auto">
-                        {new Date(log.timestamp).toLocaleString("ko-KR")}
+                        {log.timestamp ? new Date(log.timestamp).toLocaleString("ko-KR") : "-"}
                       </span>
                     </div>
                     <p className="text-xs text-foreground">{log.description}</p>
