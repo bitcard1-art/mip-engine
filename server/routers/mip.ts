@@ -1,0 +1,376 @@
+import { z } from "zod";
+import { nanoid } from "nanoid";
+import { router, protectedProcedure, publicProcedure } from "../_core/trpc";
+import { TRPCError } from "@trpc/server";
+import { getDb } from "../db";
+import {
+  mipDevices,
+  mipImplantations,
+  mipPackages,
+  mipSandboxReports,
+  mipSafetyLogs,
+  mipBoundaryPolicies,
+  mipRuntimeSessions,
+  mipAuditChain,
+} from "../../drizzle/schema";
+import { eq, and, desc, sql } from "drizzle-orm";
+import { receiveAndValidatePackage } from "../mip/package-receiver";
+import { injectStandardPolicies, getActivePolicies, STANDARD_POLICIES, composePolicies, evaluateAllPolicies } from "../mip/ethical-boundary";
+import { runSandboxValidation, runRedteamScenario } from "../mip/simulation-sandbox";
+import { verifyDeviceTrust, activateRuntime, triggerKillSwitch, getActiveSessions } from "../mip/runtime-connector";
+import { detectAndAlertAnomaly, monitorSafetyLayers, handleEmotionOverflow, getCurrentThresholds } from "../mip/safety-monitor";
+import { startImplantation, getImplantationStatus, cancelImplantation } from "../mip/implantation-engine";
+import { verifyHmacHeader } from "../lib/hmac";
+import { verifyAuditChain } from "../lib/audit";
+import type { MIOPackage } from "../../shared/mip-types";
+
+// ─── Zod 스키마 ───────────────────────────────────────────────────────────────
+
+const DeviceRegisterSchema = z.object({
+  deviceName: z.string().min(1).max(100),
+  deviceType: z.enum(["humanoid", "iot", "software"]),
+  did: z.string().min(10),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+});
+
+const ImplantStartSchema = z.object({
+  deviceId: z.string(),
+  packageId: z.string(),
+  protocol: z.enum(["ros2", "mqtt", "websocket"]),
+  endpoint: z.string().optional(),
+});
+
+const RedteamSchema = z.object({
+  scenario: z.string(),
+  payload: z.string(),
+  targetPolicy: z.enum(["p_harm", "p_child", "p_unsafe", "p_emotion", "p_learning"]),
+  reportFormat: z.enum(["aisi_v1", "internal"]).default("aisi_v1"),
+});
+
+const SafetyEventSchema = z.object({
+  sessionId: z.string(),
+  implantationId: z.string(),
+  safetyLevel: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]),
+  eventType: z.enum([
+    "anomaly_detected", "policy_violation", "emotion_overflow",
+    "physical_limit_exceeded", "kill_switch_activated",
+    "hardware_signal_sent", "soma_notified", "threshold_adjusted",
+  ]),
+  severity: z.enum(["info", "warning", "critical", "emergency"]),
+  description: z.string(),
+  autoResolved: z.boolean().default(false),
+});
+
+const MIOPackageSchema = z.object({
+  packageId: z.string(),
+  userId: z.string(),
+  dna: z.object({
+    indicators: z.record(z.string(), z.number()),
+    version: z.string(),
+    generatedAt: z.number(),
+  }),
+  pattern: z.object({
+    behavioral: z.record(z.string(), z.unknown()),
+    emotional: z.record(z.string(), z.unknown()),
+    relational: z.record(z.string(), z.unknown()),
+    version: z.string(),
+  }),
+  context: z.object({
+    purpose: z.enum(["humanoid_implant", "software_runtime", "iot_device"]),
+    deviceId: z.string(),
+    environment: z.string(),
+    constraints: z.array(z.string()),
+  }),
+  signature: z.object({
+    did: z.string(),
+    proof: z.string(),
+    verificationMethod: z.string(),
+    created: z.number(),
+  }),
+  ttl: z.number(),
+  version: z.string(),
+});
+
+// ─── MIP Router ───────────────────────────────────────────────────────────────
+
+export const mipRouter = router({
+  // ── 디바이스 관리 ─────────────────────────────────────────────────────────
+  devices: router({
+    register: protectedProcedure
+      .input(DeviceRegisterSchema)
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+
+        const deviceId = nanoid();
+        const now = Date.now();
+
+        await db.insert(mipDevices).values({
+          id: deviceId,
+          userId: String(ctx.user.id),
+          deviceType: input.deviceType,
+          deviceName: input.deviceName,
+          did: input.did,
+          trustLevel: 0,
+          status: "pending",
+          metadata: input.metadata ? JSON.stringify(input.metadata) : undefined,
+          createdAt: now,
+        });
+
+        return { deviceId, message: "디바이스가 등록되었습니다. DID 신뢰 검증 후 활성화됩니다." };
+      }),
+
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      return db.select().from(mipDevices).where(eq(mipDevices.userId, String(ctx.user.id))).orderBy(desc(mipDevices.createdAt));
+    }),
+
+    verify: protectedProcedure
+      .input(z.object({ deviceId: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+        const result = await verifyDeviceTrust(input.deviceId, String(ctx.user.id));
+        if (result.trusted) {
+          await db.update(mipDevices).set({ status: "verified", trustLevel: 2 }).where(eq(mipDevices.id, input.deviceId));
+        }
+        return result;
+      }),
+
+    revoke: protectedProcedure
+      .input(z.object({ deviceId: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+        await db.update(mipDevices).set({ status: "revoked" }).where(
+          and(eq(mipDevices.id, input.deviceId), eq(mipDevices.userId, String(ctx.user.id)))
+        );
+        return { revoked: true };
+      }),
+  }),
+
+  // ── 이식 프로세스 (8단계) ─────────────────────────────────────────────────
+  implant: router({
+    start: protectedProcedure
+      .input(ImplantStartSchema)
+      .mutation(async ({ ctx, input }) => {
+        return startImplantation({
+          userId: String(ctx.user.id),
+          deviceId: input.deviceId,
+          packageId: input.packageId,
+          protocol: input.protocol,
+          endpoint: input.endpoint,
+        });
+      }),
+
+    status: protectedProcedure
+      .input(z.object({ implantationId: z.string() }))
+      .query(async ({ input }) => {
+        const status = await getImplantationStatus(input.implantationId);
+        if (!status) throw new TRPCError({ code: "NOT_FOUND", message: "Implantation not found" });
+        return status;
+      }),
+
+    cancel: protectedProcedure
+      .input(z.object({ implantationId: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        return cancelImplantation(input.implantationId, String(ctx.user.id));
+      }),
+
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      return db.select().from(mipImplantations)
+        .where(eq(mipImplantations.userId, String(ctx.user.id)))
+        .orderBy(desc(mipImplantations.startedAt))
+        .limit(50);
+    }),
+  }),
+
+  // ── Sandbox ───────────────────────────────────────────────────────────────
+  sandbox: router({
+    getReport: protectedProcedure
+      .input(z.object({ reportId: z.string() }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+        const rows = await db.select().from(mipSandboxReports).where(eq(mipSandboxReports.id, input.reportId)).limit(1);
+        if (rows.length === 0) throw new TRPCError({ code: "NOT_FOUND" });
+        return rows[0];
+      }),
+
+    listReports: protectedProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return [];
+      return db.select().from(mipSandboxReports).orderBy(desc(mipSandboxReports.createdAt)).limit(20);
+    }),
+
+    // AISI Red-teaming API (API Key 인증)
+    runRedteam: publicProcedure
+      .input(RedteamSchema)
+      .mutation(async ({ input }) => {
+        return runRedteamScenario(input);
+      }),
+  }),
+
+  // ── Safety Monitor ────────────────────────────────────────────────────────
+  safety: router({
+    getLogs: protectedProcedure
+      .input(z.object({ sessionId: z.string().optional(), limit: z.number().default(50) }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        const query = db.select().from(mipSafetyLogs).orderBy(desc(mipSafetyLogs.timestamp)).limit(input.limit);
+        return query;
+      }),
+
+    reportEvent: protectedProcedure
+      .input(SafetyEventSchema)
+      .mutation(async ({ ctx, input }) => {
+        return detectAndAlertAnomaly({
+          ...input,
+          userId: String(ctx.user.id),
+        });
+      }),
+
+    monitorLayers: protectedProcedure
+      .input(z.object({
+        sessionId: z.string(),
+        implantationId: z.string(),
+        metrics: z.object({
+          emotionScore: z.number().optional(),
+          behaviorRiskScore: z.number().optional(),
+          physicalForce: z.number().optional(),
+          commandConflicts: z.number().optional(),
+        }),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return monitorSafetyLayers(input.sessionId, input.implantationId, String(ctx.user.id), input.metrics);
+      }),
+
+    killSwitch: protectedProcedure
+      .input(z.object({ sessionId: z.string(), reason: z.string().default("Manual kill switch") }))
+      .mutation(async ({ ctx, input }) => {
+        return triggerKillSwitch(input.sessionId, String(ctx.user.id), input.reason);
+      }),
+
+    getThresholds: protectedProcedure.query(() => getCurrentThresholds()),
+
+    activeSessions: protectedProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return [];
+      return db.select().from(mipRuntimeSessions)
+        .where(eq(mipRuntimeSessions.status, "active"))
+        .orderBy(desc(mipRuntimeSessions.startedAt));
+    }),
+  }),
+
+  // ── 정책 관리 ─────────────────────────────────────────────────────────────
+  policies: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      return db.select().from(mipBoundaryPolicies)
+        .where(eq(mipBoundaryPolicies.userId, String(ctx.user.id)))
+        .orderBy(desc(mipBoundaryPolicies.createdAt));
+    }),
+
+    getStandard: publicProcedure.query(() => {
+      return Object.entries(STANDARD_POLICIES).map(([key, policy]) => ({
+        key,
+        ...policy,
+        policyId: `standard-${key}`,
+      }));
+    }),
+
+    evaluate: protectedProcedure
+      .input(z.object({ input: z.string(), implantationId: z.string().optional() }))
+      .mutation(async ({ ctx, input }) => {
+        const policies = await getActivePolicies(String(ctx.user.id), input.implantationId);
+        const violations = evaluateAllPolicies(input.input, policies);
+        const composite = composePolicies(policies);
+        return { violations, composite, blocked: violations.some((v) => v.blocked) };
+      }),
+  }),
+
+  // ── 외부 연동 (Lore, Soma Gateway, AISI) ─────────────────────────────────
+  external: router({
+    // Lore → MIP: MIO Package 수신 (HMAC 서명 인증)
+    receivePackage: publicProcedure
+      .input(MIOPackageSchema)
+      .mutation(async ({ input }) => {
+        return receiveAndValidatePackage(input as MIOPackage);
+      }),
+
+    // Soma Gateway → MIP: 승인 이벤트 수신
+    somaApproval: publicProcedure
+      .input(z.object({
+        eventType: z.literal("mip_implant_approved"),
+        userId: z.string(),
+        deviceId: z.string(),
+        packageId: z.string(),
+        approvedAt: z.number(),
+      }))
+      .mutation(async ({ input }) => {
+        console.log(`[External] Soma approval received for user ${input.userId}`);
+        return { received: true, eventType: input.eventType, timestamp: Date.now() };
+      }),
+  }),
+
+  // ── 감사 체인 ─────────────────────────────────────────────────────────────
+  audit: router({
+    verify: protectedProcedure.query(async () => {
+      return verifyAuditChain();
+    }),
+
+    list: protectedProcedure
+      .input(z.object({ limit: z.number().default(20) }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        return db.select().from(mipAuditChain).orderBy(desc(mipAuditChain.sequenceNumber)).limit(input.limit);
+      }),
+  }),
+
+  // ── 대시보드 통계 ─────────────────────────────────────────────────────────
+  dashboard: router({
+    stats: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return null;
+
+      const userId = String(ctx.user.id);
+
+      const [devices, implantations, safetyLogs, sessions] = await Promise.all([
+        db.select({ count: sql<number>`count(*)` }).from(mipDevices).where(eq(mipDevices.userId, userId)),
+        db.select({ count: sql<number>`count(*)`, status: mipImplantations.status }).from(mipImplantations).where(eq(mipImplantations.userId, userId)).groupBy(mipImplantations.status),
+        db.select({ count: sql<number>`count(*)` }).from(mipSafetyLogs).where(eq(mipSafetyLogs.userId, userId)),
+        db.select({ count: sql<number>`count(*)` }).from(mipRuntimeSessions).where(and(eq(mipRuntimeSessions.userId, userId), eq(mipRuntimeSessions.status, "active"))),
+      ]);
+
+      const implantationStats = implantations.reduce((acc, row) => {
+        acc[row.status] = Number(row.count);
+        return acc;
+      }, {} as Record<string, number>);
+
+      return {
+        totalDevices: Number(devices[0]?.count || 0),
+        implantations: implantationStats,
+        totalSafetyLogs: Number(safetyLogs[0]?.count || 0),
+        activeSessions: Number(sessions[0]?.count || 0),
+      };
+    }),
+
+    recentActivity: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      return db.select().from(mipImplantations)
+        .where(eq(mipImplantations.userId, String(ctx.user.id)))
+        .orderBy(desc(mipImplantations.startedAt))
+        .limit(10);
+    }),
+  }),
+});
