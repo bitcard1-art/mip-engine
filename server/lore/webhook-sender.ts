@@ -15,6 +15,21 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * 이벤트 타입 → LORE webhook 경로 매핑
+ * LORE 팀 제공 스펙 기준
+ */
+const EVENT_PATH_MAP: Record<string, string> = {
+  mip_package_received:          "/api/mip/webhook/package-received",
+  mip_package_validation_failed: "/api/mip/webhook/verification-failed",
+  mip_implant_complete:          "/api/mip/webhook/implant-complete",
+  mip_implant_result:            "/api/mip/webhook/implant-result",
+};
+
+function getLoreWebhookPath(eventType: string): string {
+  return EVENT_PATH_MAP[eventType] ?? "/api/mip/webhook";
+}
+
 async function saveToDLQ(eventType: string, payload: object): Promise<void> {
   const db = await getDb();
   if (!db) {
@@ -50,13 +65,15 @@ export async function sendLoreWebhook(
     return;
   }
 
+  const webhookPath = getLoreWebhookPath(eventType);
+  const fullUrl = `${loreUrl}${webhookPath}`;
   const body = JSON.stringify({ eventType, ...payload });
   const timestamp = Date.now().toString();
   const signature = generateLoreSignature(body, timestamp);
 
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      const res = await fetch(`${loreUrl}/api/mip/webhook`, {
+      const res = await fetch(fullUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -69,7 +86,7 @@ export async function sendLoreWebhook(
       });
 
       if (res.ok) {
-        console.log(`[LoreWebhook] 전송 성공: ${eventType} (attempt ${attempt})`);
+        console.log(`[LoreWebhook] 전송 성공: ${eventType} → ${fullUrl} (attempt ${attempt})`);
         // 성공 이력 저장
         const db = await getDb();
         if (db) {
@@ -77,7 +94,7 @@ export async function sendLoreWebhook(
             id: nanoid(),
             target: "lore",
             eventType,
-            url: `${loreUrl}/api/mip/webhook`,
+            url: fullUrl,
             statusCode: res.status,
             success: 1,
             attempts: attempt,
@@ -87,7 +104,7 @@ export async function sendLoreWebhook(
         return;
       }
       console.warn(
-        `[LoreWebhook] attempt ${attempt} failed: HTTP ${res.status} ${eventType}`
+        `[LoreWebhook] attempt ${attempt} failed: HTTP ${res.status} ${eventType} → ${fullUrl}`
       );
     } catch (err) {
       console.error(`[LoreWebhook] attempt ${attempt} error:`, err);
@@ -107,7 +124,7 @@ export async function sendLoreWebhook(
       id: nanoid(),
       target: "lore",
       eventType,
-      url: `${loreUrl}/api/mip/webhook`,
+      url: fullUrl,
       success: 0,
       attempts: retries,
       errorMessage: "Max retries exceeded",
@@ -188,12 +205,14 @@ export async function retryLoreDlqEvents(): Promise<void> {
       continue;
     }
 
+    const webhookPath = getLoreWebhookPath(item.eventType);
+    const fullUrl = `${ENV.loreWebhookUrl}${webhookPath}`;
     const body = JSON.stringify({ eventType: item.eventType, ...payload });
     const timestamp = Date.now().toString();
     const signature = generateLoreSignature(body, timestamp);
 
     try {
-      const res = await fetch(`${ENV.loreWebhookUrl}/api/mip/webhook`, {
+      const res = await fetch(fullUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -210,7 +229,7 @@ export async function retryLoreDlqEvents(): Promise<void> {
           .update(mipLoreWebhookDlq)
           .set({ status: "resolved", resolvedAt: Date.now() })
           .where(eq(mipLoreWebhookDlq.id, item.id));
-        console.log(`[LoreDLQ] 재전송 성공: ${item.eventType} (id: ${item.id})`);
+        console.log(`[LoreDLQ] 재전송 성공: ${item.eventType} → ${fullUrl} (id: ${item.id})`);
       } else {
         await db
           .update(mipLoreWebhookDlq)

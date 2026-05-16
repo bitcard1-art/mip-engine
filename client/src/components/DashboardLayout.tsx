@@ -21,15 +21,21 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, LogOut, PanelLeft, Users } from "lucide-react";
+import { Activity, LayoutDashboard, LogOut, PanelLeft, Package, Shield, ShieldAlert, Cpu, FileSearch, Swords, ScrollText } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
 
 const menuItems = [
-  { icon: LayoutDashboard, label: "Page 1", path: "/" },
-  { icon: Users, label: "Page 2", path: "/some-path" },
+  { icon: LayoutDashboard, label: "대시보드", path: "/dashboard" },
+  { icon: Cpu, label: "디바이스", path: "/devices" },
+  { icon: Package, label: "MIO 패키지", path: "/implantations" },
+  { icon: Shield, label: "윤리 정책", path: "/policies" },
+  { icon: FileSearch, label: "Sandbox 검증", path: "/sandbox" },
+  { icon: Activity, label: "Safety Monitor", path: "/safety" },
+  { icon: Swords, label: "Red-team", path: "/redteam" },
+  { icon: ScrollText, label: "감사 로그", path: "/audit" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
@@ -171,7 +177,7 @@ function DashboardLayoutContent({
               {!isCollapsed ? (
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="font-semibold tracking-tight truncate">
-                    Navigation
+                    MIP Engine
                   </span>
                 </div>
               ) : null}

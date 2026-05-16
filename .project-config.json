@@ -15,10 +15,10 @@
   ],
   "git_remote": {
     "repo_url": "s3://vida-prod-gitrepo/webdev-git/310519663555860323/EDMJNrQWh4S6sL4GhmxVJr",
-    "access_key_id": "ASIAZV3A2ECZGNRXDX3A",
-    "secret_access_key": "BtuN4KNuVCGHWvjedHnV4mDkvsR73MX2MjaepFe6",
-    "session_token": "IQoJb3JpZ2luX2VjEL7//////////wEaCXVzLWVhc3QtMSJIMEYCIQDh5RTE7KOM8akKNc+RzMXCIlQzLsN/xjwzKUMLey+QzAIhAKfauDkQk8JZgx75530bgN3zVz5BC60AHRMG1nhbBshCKv8DCIf//////////wEQBBoMNjY1Mzg2MDk4ODY2IgxqYFkxJZHklxe9Fzoq0wPaWjVUwp/15OKwy5B1pRVL0sNaOKDPOpmxhYJA8YuWSMBkquB1+hTq3gPHlJxSIlk6x44wO9tnSegt1T181EOBm7XSukTIL0kWRAw9L9eQdV2ZqaXcpHGYlVJQuIf/2PwLRi5i+QqS1ccub8ZkjJA7KH4QOKLdBZPSk1XcAYbX4EiCST6x+TM/FU78pMCsf4tVwuayQssVBIAhVLT+dyXwJemPrA3IQgO2XXwuSX9NitL2LzupcjkybwickwZgPzug4vPZrLq3vGY2ij1VreSDssFQkcrLmRO+DiCflQUsjhEWtVgMxFmQIfp847F/OKkbLPBW7YsSa84gKmpapP2fPCAbHK5sfxUIZf7MKaBwQY86T8CAo6yWKMeFyLdjvS5/UhZdaEixF6pzGG5FvpdIaD62QG1VtHIfjNRPXr+kmOIuD1qW9PwLB30GUECFLTlxI1ESylbDUkV3zljVFvP9eQ2alJNn1IB/P/cRXap0bzAx42I3afrZXBNKcWHJRGrN9fvajaCfBSTa7V8NabmAGNg4FIUCojUJp7jEnn2rpu8YVs+KOVdZw8ZYKWsZtEjtJ791QqIvQDBAx0wxQw1cdqV8Rwxj8xwk8DOLay5K0BmikzDEiKDQBjqcAUwaqmhVC8UoxXs3GT7DFKVowE2b64+nUUCH8qG1miV+eotdas1OGHKaZy7mrU48RGpQgm0cfqZFI2Z+kRxE9YJYbyj/hB2atAVXBvAGEm/bnIziFN8fv60ucv8sGwMnTd0y6UdQJpO/QeNr3DsGRr7pqBqBlh3IRr5xt7+4H58T2TGsS0345x86qAEFmZRFlgGXnY9+JlKd34/KeQ==",
-    "expiration": "2026-05-16T17:44:36.000Z"
+    "access_key_id": "ASIAZV3A2ECZLFKUJPW2",
+    "secret_access_key": "8U9J3WSTzU1cP7qBdTtZwlvERH7N//ccwRPgrLmb",
+    "session_token": "IQoJb3JpZ2luX2VjEMX//////////wEaCXVzLWVhc3QtMSJHMEUCIQDG60h9q+YYDRPiX+gBOvjaVYn9uVCHZVDpFNauX1tjaQIgImll2E+tm1xohMneZojEpz33CECPBbrYYP4Z0Fl3FYQq/wMIjv//////////ARAEGgw2NjUzODYwOTg4NjYiDGdcbsmxKcuvBiM1SyrTA3Boh89pIPYp+LyFrB3pahbd2jEkH4tkjTPiWF1V9wHZ43rqLMSkD6EJclqE2LcPlnrCXN0JJzT7dpMlJlBLM7LdZsBRd+bCBF0VKKGEBf11lfOq6KyIfz/VNcM41S2FF61EJOvk0GxsSRvIIepZRrAFEKPrzxSAiHbgDzJpjDtGEq2l3qcwb8pxHg0RjbTTm0uhtUf1vkSP9kAbhuO82aAwtNfrfgOxAmwDpdRlHQQMQyMZisgWt5SLvz3MvjfADjOYB1m1K5KD0njzakrcdPd4mwpWuslhhsU2UI4XGS7nSM+85/+K/3uuTryt0KwXdcLgbUk/FNNsd0TZJKMRTdnDAVvotoEbZ4rkVKuuCpByN35oCNOBnIG4uaRwSYbbz74iympdwHZp7qovVFbaVkuLtQzxkoFxymRuWrJfeADgfiOsoOWl9ADIsaACVfZ8cimXsMZ7miktGamMVF5nNijK991xiqZhCyEZwXqS1txBLUYf+FmjbkYWMFzOVW33eqmmep1HT5T4kahXnaesP98N7tp5uuEL2OdW6HWgnTr0KD7PV/zW8S5XxqhS7Fk2Duusad0tD/P1ChAu1LuO82SDVtIVIF6+vY5CoY9AeMGpaSDOMIDWodAGOp0BbMjoJX+I5NMkTTPxJ/J0NXqRPDWLVm6BMUfd3vXx0+RCN1Ul2VYwV86fbeqjwqnx9+9VwvEN1Sv1mT7fl6FLA53hXmySIk/XlrhRltclmyzczRqy4ik43iYCyEcNCgkEe1GJDJcYomTCUkdcqgyraTvGQ1K7M9EgeyBy7LuOQycocmKmGwOLsVj7wzothEJJe1TiizDiNj0TGO2iPA==",
+    "expiration": "2026-05-17T01:02:56.000Z"
   },
   "name": "mip-engine",
   "path": "/home/ubuntu/mip-engine",
@@ -29,7 +29,7 @@
     "JWT_SECRET": "Qu6bjcEe4vTGN6CYjwVQtT",
     "LORE_MIP_SHARED_SECRET": "140d3f196738545b10e1d0bd9ad1f22a99b04ae04e250a61ea1f603671b352bb",
     "LORE_SERVICE_URL": "https://lore.mysoma.space",
-    "LORE_WEBHOOK_URL": "https://lore.mysoma.space",
+    "LORE_WEBHOOK_URL": "https://mylore.space",
     "MIP_LORE_SHARED_SECRET": "88bdbafd9d82de0a2b485902916e6c0c531f1f93c680f6b320a09f321b44dcde",
     "MIP_SOMA_SHARED_SECRET": "308c3c63d6ed0ceed96a86130a88b749909c21b729a51740e76501ef94e13fcd",
     "OAUTH_SERVER_URL": "https://api.manus.im",
