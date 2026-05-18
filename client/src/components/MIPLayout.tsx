@@ -4,29 +4,61 @@ import { Link, useLocation } from "wouter";
 import {
   Shield, Cpu, Package, Activity, Terminal, BookOpen,
   Link2, ChevronRight, LogOut, User, Menu, X, AlertTriangle,
-  Zap, Brain, RotateCcw, ShieldCheck, Anchor
+  Zap, Brain, RotateCcw, ShieldCheck, Anchor, ScrollText,
+  FlaskConical, FileText
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
-const NAV_ITEMS = [
-  { path: "/dashboard", label: "대시보드", icon: Activity },
-  { path: "/devices", label: "디바이스 관리", icon: Cpu },
-  { path: "/packages", label: "MIO Package", icon: Package },
-  { path: "/implantations", label: "이식 프로세스", icon: Link2 },
-  { path: "/sandbox", label: "Sandbox 검증", icon: Shield },
-  { path: "/safety", label: "Safety Monitor", icon: AlertTriangle },
-  { path: "/policies", label: "경계 정책", icon: BookOpen },
-  { path: "/redteam", label: "Red-teaming", icon: Terminal },
-  { path: "/audit", label: "감사 체인", icon: Package },
-  { path: "/guide", label: "이용 가이드", icon: BookOpen },
-  { path: "/physical-actions", label: "Physical Action", icon: Zap },
-  { path: "/emotional-risk", label: "Emotional Risk", icon: Brain },
-  { path: "/dna-rollback", label: "DNA Rollback", icon: RotateCcw },
-  { path: "/isolation-layer", label: "§14 Isolation Layer", icon: ShieldCheck },
-  { path: "/ledger-anchoring", label: "§14.6 Ledger Anchoring", icon: Anchor },
+interface NavItem {
+  path: string;
+  label: string;
+  icon: React.ElementType;
+}
+
+interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    label: "이식 관리",
+    items: [
+      { path: "/dashboard", label: "대시보드", icon: Activity },
+      { path: "/devices", label: "디바이스 관리", icon: Cpu },
+      { path: "/packages", label: "MIO Package", icon: Package },
+      { path: "/implantations", label: "이식 프로세스", icon: Link2 },
+      { path: "/sandbox", label: "Sandbox 검증", icon: FlaskConical },
+    ],
+  },
+  {
+    label: "안전 보강",
+    items: [
+      { path: "/safety", label: "Safety Monitor", icon: AlertTriangle },
+      { path: "/physical-actions", label: "Physical Action", icon: Zap },
+      { path: "/emotional-risk", label: "Emotional Risk", icon: Brain },
+      { path: "/dna-rollback", label: "DNA Rollback", icon: RotateCcw },
+    ],
+  },
+  {
+    label: "보안 · 감사",
+    items: [
+      { path: "/policies", label: "경계 정책", icon: Shield },
+      { path: "/redteam", label: "Red-teaming", icon: Terminal },
+      { path: "/audit", label: "감사 체인", icon: ScrollText },
+      { path: "/isolation-layer", label: "§14 Isolation Layer", icon: ShieldCheck },
+      { path: "/ledger-anchoring", label: "§14.6 Ledger Anchoring", icon: Anchor },
+    ],
+  },
+  {
+    label: "설정 · 가이드",
+    items: [
+      { path: "/guide", label: "이용 가이드", icon: BookOpen },
+    ],
+  },
 ];
 
 interface MIPLayoutProps {
@@ -83,7 +115,7 @@ export default function MIPLayout({ children, title }: MIPLayoutProps) {
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
       `}>
         {/* Logo */}
-        <div className="h-16 flex items-center gap-3 px-5 border-b border-sidebar-border">
+        <div className="h-16 flex items-center gap-3 px-5 border-b border-sidebar-border shrink-0">
           <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
             <Shield className="w-4 h-4 text-primary" />
           </div>
@@ -97,34 +129,45 @@ export default function MIPLayout({ children, title }: MIPLayoutProps) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 py-4 overflow-y-auto">
-          <div className="px-3 space-y-0.5">
-            {NAV_ITEMS.map((item) => {
-              const Icon = item.icon;
-              const isActive = location === item.path;
-              return (
-                <Link
-                  key={item.path}
-                  href={item.path}
-                  className={`
-                    flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-all duration-150
-                    ${isActive
-                      ? "bg-sidebar-primary/20 text-sidebar-primary font-medium"
-                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                    }
-                  `}
-                >
-                  <Icon className="w-4 h-4 shrink-0" />
-                  <span>{item.label}</span>
-                  {isActive && <ChevronRight className="w-3 h-3 ml-auto" />}
-                </Link>
-              );
-            })}
+        <nav className="flex-1 py-3 overflow-y-auto">
+          <div className="px-3 space-y-4">
+            {NAV_GROUPS.map((group) => (
+              <div key={group.label}>
+                {/* 그룹 헤더 */}
+                <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/35 select-none">
+                  {group.label}
+                </p>
+                {/* 그룹 아이템 */}
+                <div className="space-y-0.5">
+                  {group.items.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = location === item.path;
+                    return (
+                      <Link
+                        key={item.path}
+                        href={item.path}
+                        className={`
+                          flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-all duration-150
+                          ${isActive
+                            ? "bg-sidebar-primary/20 text-sidebar-primary font-medium"
+                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          }
+                        `}
+                      >
+                        <Icon className="w-4 h-4 shrink-0" />
+                        <span>{item.label}</span>
+                        {isActive && <ChevronRight className="w-3 h-3 ml-auto" />}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         </nav>
 
         {/* User */}
-        <div className="p-4 border-t border-sidebar-border">
+        <div className="p-4 border-t border-sidebar-border shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
               <User className="w-4 h-4 text-primary" />

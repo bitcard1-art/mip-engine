@@ -116,3 +116,7 @@
 - [x] §14.6 Distributed Ledger Anchoring — ledger-anchoring.ts + DB 2개 + tRPC + LedgerAnchoringPage.tsx
 - [x] ImplantationsPage에 §14 단계별 상태 배지 추가 (Core Identity 생성 완료, Isolation Layer 활성화 등)
 - [x] 이용 가이드에 §14.3 심리적 면역체계 신설 섹션 추가 (§14 v1.0 vs v2.0 비교표, 5개 절 상세, 8단계 매핑)
+
+## Phase 12: 사이드바 메뉴 카테고리 그룹화
+
+- [x] MIPLayout.tsx NAV_ITEMS를 4개 그룹으로 재구조화 (이식 관리 / 안전 보강 / 보안·감사 / 설정·가이드)
