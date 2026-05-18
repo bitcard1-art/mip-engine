@@ -236,7 +236,7 @@ export default function ImplantationsPage() {
   const [form, setForm] = useState({ deviceId: "", packageId: "", protocol: "websocket" as "ros2" | "mqtt" | "websocket" });
   const utils = trpc.useUtils();
 
-  const { data: implantations, isLoading } = trpc.mip.implant.list.useQuery();
+  const { data: implantations, isLoading, refetch: refetchList } = trpc.mip.implant.list.useQuery(undefined, { refetchInterval: 5000 });
   const { data: devices } = trpc.mip.devices.listAll.useQuery();
   const { data: packages, isLoading: packagesLoading } = trpc.mip.packages.listAll.useQuery();
 
