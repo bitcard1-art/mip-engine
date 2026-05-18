@@ -521,3 +521,43 @@ export const mipDeploymentSecurity = mysqlTable("mip_deployment_security", {
 });
 export type MipDeploymentSecurity = typeof mipDeploymentSecurity.$inferSelect;
 export type InsertMipDeploymentSecurity = typeof mipDeploymentSecurity.$inferInsert;
+
+// ─── §14.6 Distributed Ledger Anchoring ──────────────────────────────────────
+
+// 앵커 레코드 — 내부 chainHash ↔ 외부 원장 txId 매핑
+export const mipLedgerAnchors = mysqlTable("mip_ledger_anchors", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  chainHash: varchar("chain_hash", { length: 128 }).notNull(),
+  txId: varchar("tx_id", { length: 256 }).notNull(),
+  blockNumber: bigint("block_number", { mode: "number" }),
+  status: mysqlEnum("status", ["pending", "anchored", "verified", "failed", "simulation"]).notNull().default("pending"),
+  ledgerEndpoint: varchar("ledger_endpoint", { length: 256 }).notNull(),
+  entityType: varchar("entity_type", { length: 30 }).notNull(),
+  entityId: varchar("entity_id", { length: 36 }).notNull(),
+  action: varchar("action", { length: 50 }).notNull(),
+  actorId: varchar("actor_id", { length: 36 }).notNull(),
+  implantationId: varchar("implantation_id", { length: 36 }),
+  verificationProof: varchar("verification_proof", { length: 128 }).notNull(),
+  anchoredAt: bigint("anchored_at", { mode: "number" }).notNull(),
+  verifiedAt: bigint("verified_at", { mode: "number" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+});
+export type MipLedgerAnchor = typeof mipLedgerAnchors.$inferSelect;
+export type InsertMipLedgerAnchor = typeof mipLedgerAnchors.$inferInsert;
+
+// DLQ — 외부 원장 제출 실패 시 재시도 큐
+export const mipLedgerAnchorDlq = mysqlTable("mip_ledger_anchor_dlq", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  anchorId: varchar("anchor_id", { length: 36 }).notNull(),
+  chainHash: varchar("chain_hash", { length: 128 }).notNull(),
+  payloadJson: text("payload_json").notNull(),
+  errorMessage: text("error_message"),
+  lastError: text("last_error"),
+  retryCount: int("retry_count").default(0).notNull(),
+  maxRetries: int("max_retries").default(5).notNull(),
+  status: mysqlEnum("status", ["pending", "completed", "exhausted"]).notNull().default("pending"),
+  nextRetryAt: bigint("next_retry_at", { mode: "number" }).notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+});
+export type MipLedgerAnchorDlq = typeof mipLedgerAnchorDlq.$inferSelect;
+export type InsertMipLedgerAnchorDlq = typeof mipLedgerAnchorDlq.$inferInsert;

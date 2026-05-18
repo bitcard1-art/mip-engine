@@ -110,3 +110,9 @@
 - [x] mip.ts 라우터에 isolationLayer 서브라우터 추가 (8개 프로시저)
 - [x] IsolationLayerPage.tsx — §14 모니터링 UI (4개 탭: 대시보드/명령검사/Emotional Bridge/위반통계)
 - [x] isolation-layer.test.ts — 22개 테스트 (§14.1/§14.2.3/§14.2.5/§14.4/§14.6 전체 커버리지)
+
+## Phase 11: §14 후속 작업 3가지
+
+- [x] §14.6 Distributed Ledger Anchoring — ledger-anchoring.ts + DB 2개 + tRPC + LedgerAnchoringPage.tsx
+- [x] ImplantationsPage에 §14 단계별 상태 배지 추가 (Core Identity 생성 완료, Isolation Layer 활성화 등)
+- [x] 이용 가이드에 §14.3 심리적 면역체계 신설 섹션 추가 (§14 v1.0 vs v2.0 비교표, 5개 절 상세, 8단계 매핑)

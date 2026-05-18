@@ -6,9 +6,76 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { CheckCircle, XCircle, Clock, Loader2, Plus, ChevronRight, RefreshCw } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Loader2, Plus, RefreshCw, ShieldCheck, Shield, Link2, Brain, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { IMPLANTATION_STAGES } from "../../../shared/mip-types";
+
+// §14 단계별 통합 매핑
+const STAGE_S14_MAP: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
+  device_registration: { label: "§14.2.4 No Surface",  icon: <Shield className="w-3 h-3" />,      color: "text-blue-400 border-blue-500/30 bg-blue-500/10" },
+  trust_verification:  { label: "§14.2.4 접근 차단",   icon: <Shield className="w-3 h-3" />,      color: "text-blue-400 border-blue-500/30 bg-blue-500/10" },
+  user_authentication: { label: "§14.2.3 조작 차단",   icon: <ShieldCheck className="w-3 h-3" />, color: "text-yellow-400 border-yellow-500/30 bg-yellow-500/10" },
+  package_generation:  { label: "§14.2.1 자아 보호",   icon: <ShieldCheck className="w-3 h-3" />, color: "text-purple-400 border-purple-500/30 bg-purple-500/10" },
+  boundary_injection:  { label: "§14.2.3 패턴 검사",   icon: <AlertTriangle className="w-3 h-3" />,color: "text-orange-400 border-orange-500/30 bg-orange-500/10" },
+  runtime_binding:     { label: "§14.4 Core Identity", icon: <Brain className="w-3 h-3" />,       color: "text-green-400 border-green-500/30 bg-green-500/10" },
+  sandbox_validation:  { label: "§14.3 면역체계",     icon: <ShieldCheck className="w-3 h-3" />, color: "text-teal-400 border-teal-500/30 bg-teal-500/10" },
+  live_activation:     { label: "§14.6 Deployment",   icon: <Link2 className="w-3 h-3" />,       color: "text-pink-400 border-pink-500/30 bg-pink-500/10" },
+};
+
+function S14Badge({ stage, stageStatus }: { stage: string; stageStatus: string }) {
+  const s14 = STAGE_S14_MAP[stage];
+  if (!s14 || stageStatus === "pending") return null;
+  return (
+    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border font-medium ${
+      stageStatus === "completed" ? s14.color : "text-slate-500 border-slate-600/30 bg-slate-700/20"
+    }`}>
+      {stageStatus === "completed" ? s14.icon : <Clock className="w-3 h-3" />}
+      {s14.label}
+    </span>
+  );
+}
+
+function IsolationSummaryBadges({ isolationLayer }: {
+  isolationLayer?: {
+    coreIdentityId?: string;
+    coreIdentityStatus?: string;
+    deploymentSecurityId?: string;
+    securityLevel?: string;
+    trustChainValid?: boolean;
+  };
+}) {
+  if (!isolationLayer) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-border">
+      <span className="text-[10px] text-muted-foreground self-center">§14 상태:</span>
+      {isolationLayer.coreIdentityId && (
+        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border font-medium ${
+          isolationLayer.coreIdentityStatus === "active"
+            ? "text-green-400 border-green-500/30 bg-green-500/10"
+            : "text-yellow-400 border-yellow-500/30 bg-yellow-500/10"
+        }`}>
+          <Brain className="w-3 h-3" />
+          Core Identity {isolationLayer.coreIdentityStatus === "active" ? "활성" : isolationLayer.coreIdentityStatus}
+        </span>
+      )}
+      {isolationLayer.deploymentSecurityId && (
+        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border font-medium ${
+          isolationLayer.trustChainValid
+            ? "text-teal-400 border-teal-500/30 bg-teal-500/10"
+            : "text-orange-400 border-orange-500/30 bg-orange-500/10"
+        }`}>
+          <Link2 className="w-3 h-3" />
+          §14.6 {isolationLayer.securityLevel ?? "standard"} {isolationLayer.trustChainValid ? "✓" : "⚠"}
+        </span>
+      )}
+      {!isolationLayer.coreIdentityId && !isolationLayer.deploymentSecurityId && (
+        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border text-muted-foreground border-border">
+          <Clock className="w-3 h-3" />§14 미활성 (Stage 6 이전)
+        </span>
+      )}
+    </div>
+  );
+}
 
 const STAGE_LABELS: Record<string, string> = {
   device_registration: "디바이스 등록",
@@ -75,7 +142,11 @@ function ImplantationDetail({ implantationId }: { implantationId: string }) {
         <div className="bg-primary h-1.5 rounded-full transition-all" style={{ width: `${data.progress}%` }} />
       </div>
 
-      <div className="space-y-2">
+      {/* §14 통합 상태 요약 배지 */}
+      <IsolationSummaryBadges isolationLayer={data.isolationLayer} />
+
+      {/* 단계별 상세 (§14 배지 포함) */}
+      <div className="space-y-1.5">
         {IMPLANTATION_STAGES.map((stage, i) => {
           const histEntry = data.stageHistory.find((h: any) => h.stage === stage);
           const isCurrentStage = stage === data.currentStage;
@@ -85,23 +156,43 @@ function ImplantationDetail({ implantationId }: { implantationId: string }) {
           else if (isCurrentStage) stageStatus = data.status === "failed" ? "failed" : "in_progress";
 
           const icons = {
-            completed: <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />,
-            in_progress: <Loader2 className="w-3.5 h-3.5 text-blue-400 animate-spin" />,
-            failed: <XCircle className="w-3.5 h-3.5 text-red-400" />,
-            pending: <Clock className="w-3.5 h-3.5 text-muted-foreground" />,
+            completed: <CheckCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0" />,
+            in_progress: <Loader2 className="w-3.5 h-3.5 text-blue-400 animate-spin shrink-0" />,
+            failed: <XCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />,
+            pending: <Clock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />,
           };
 
           return (
-            <div key={stage} className={`flex items-center gap-3 p-2 rounded-md ${isCurrentStage ? "bg-primary/5 border border-primary/20" : ""}`}>
-              <span className="text-xs text-muted-foreground w-4 shrink-0">{i + 1}</span>
-              {icons[stageStatus as keyof typeof icons] || icons.pending}
-              <span className={`text-xs flex-1 ${stageStatus === "completed" ? "text-foreground" : stageStatus === "failed" ? "text-red-400" : "text-muted-foreground"}`}>
-                {STAGE_LABELS[stage]}
-              </span>
-              {histEntry?.completedAt && (
-                <span className="text-xs text-muted-foreground">
-                  {new Date(histEntry.completedAt).toLocaleTimeString("ko-KR")}
+            <div
+              key={stage}
+              className={`p-2.5 rounded-md border ${
+                isCurrentStage
+                  ? "bg-primary/5 border-primary/20"
+                  : stageStatus === "completed"
+                  ? "bg-emerald-950/20 border-emerald-800/20"
+                  : "border-transparent"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground w-4 shrink-0">{i + 1}</span>
+                {icons[stageStatus as keyof typeof icons] || icons.pending}
+                <span className={`text-xs flex-1 ${
+                  stageStatus === "completed" ? "text-foreground" :
+                  stageStatus === "failed" ? "text-red-400" : "text-muted-foreground"
+                }`}>
+                  {STAGE_LABELS[stage]}
                 </span>
+                {histEntry?.completedAt && (
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(histEntry.completedAt).toLocaleTimeString("ko-KR")}
+                  </span>
+                )}
+              </div>
+              {/* §14 배지 — 완료된 단계에만 표시 */}
+              {stageStatus !== "pending" && (
+                <div className="ml-8 mt-1.5">
+                  <S14Badge stage={stage} stageStatus={stageStatus} />
+                </div>
               )}
             </div>
           );
@@ -236,7 +327,14 @@ export default function ImplantationsPage() {
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs font-mono text-muted-foreground">{item.id.substring(0, 12)}...</span>
-                      <span className={`text-xs font-medium ${cfg.color}`}>{cfg.label}</span>
+                      <div className="flex items-center gap-1.5">
+                        {IMPLANTATION_STAGES.indexOf(item.stage as any) >= IMPLANTATION_STAGES.indexOf("runtime_binding") && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border text-green-400 border-green-500/30 bg-green-500/10 font-medium">
+                            <ShieldCheck className="w-3 h-3" />§14 활성
+                          </span>
+                        )}
+                        <span className={`text-xs font-medium ${cfg.color}`}>{cfg.label}</span>
+                      </div>
                     </div>
                     <StageProgress stage={item.stage} status={item.status} stageHistory={stageHistory} />
                     <div className="flex items-center justify-between mt-2">
@@ -265,7 +363,10 @@ export default function ImplantationsPage() {
           {selectedId ? (
             <Card className="bg-card border-border sticky top-0">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold text-foreground">이식 상세</CardTitle>
+                <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+                이식 상세
+                <span className="text-[10px] text-muted-foreground font-normal">§14 단계별 통합 상태 포함</span>
+              </CardTitle>
               </CardHeader>
               <CardContent>
                 <ImplantationDetail implantationId={selectedId} />

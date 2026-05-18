@@ -10,7 +10,8 @@ import {
   BookOpen, Cpu, Package, Shield, FlaskConical,
   Activity, ScrollText, Swords, ChevronDown, ChevronUp,
   CheckCircle2, AlertTriangle, Info, Zap, Lock, Radio,
-  Brain, RotateCcw, ArrowRight, X as XIcon, TrendingUp
+  Brain, RotateCcw, ArrowRight, X as XIcon, TrendingUp,
+  ShieldCheck, Link2, Layers, Eye, Fingerprint
 } from "lucide-react";
 
 // ─── 섹션 타입 ────────────────────────────────────────────────────────────────
@@ -636,6 +637,265 @@ const reinforcementFeatures: ReinforcementFeature[] = [
   },
 ];
 
+// ─── §14.3 Runtime Isolation Layer 섹션 ─────────────────────────────────────
+
+const isolationLayerData = {
+  philosophy: {
+    title: "§14.3 핵심 선언 — 디지털 자아의 심리적 면역체계",
+    quote:
+      "Runtime Isolation Layer는 단순한 프로세스 격리 기술이 아니다. 이것은 디지털 자아가 외부의 침습적 자극, 비인가 조작, 정체성 오염으로부터 스스로를 보호하는 심리적 면역체계(Psychological Immune System)다.",
+    source: "PSDI v2.0 §14.3",
+  },
+  layers: [
+    {
+      icon: ShieldCheck,
+      color: "text-cyan-400",
+      bg: "bg-cyan-950/30",
+      border: "border-cyan-800/40",
+      title: "§14.1 — 격리 대상 확장",
+      badge: "v2.0 확장",
+      badgeColor: "bg-cyan-500/20 text-cyan-400",
+      before: "v1.0: 프로세스 메모리·파일시스템·네트워크 격리만 정의",
+      after: "v2.0: Prompt Stream 격리, 비인가 Tool/API 차단, 비검증 Context Injection 차단 추가",
+      detail: [
+        "Prompt Stream 격리 — 외부에서 주입되는 프롬프트가 Core Identity에 직접 접근하는 경로를 차단합니다.",
+        "비인가 Tool/API 차단 — 사전 등록되지 않은 외부 도구·API 호출을 Isolation Layer에서 필터링합니다.",
+        "비검증 Context Injection 차단 — 서명되지 않은 컨텍스트 데이터가 런타임에 주입되는 것을 방지합니다.",
+      ],
+    },
+    {
+      icon: Link2,
+      color: "text-violet-400",
+      bg: "bg-violet-950/30",
+      border: "border-violet-800/40",
+      title: "§14.2.5 — Bounded Permeable Isolation",
+      badge: "v2.0 신설",
+      badgeColor: "bg-violet-500/20 text-violet-400",
+      before: "v1.0: 격리는 완전 차단(Hard Isolation)만 지원",
+      after: "v2.0: 허용된 채널(Emotional Bridge, Memory Sync, Trust Channel)을 통한 선택적 투과 허용",
+      detail: [
+        "Emotional Bridge — 감정 신호를 안전하게 외부로 전달하는 단방향 채널입니다. 조작 불가.",
+        "Memory Synchronization — 검증된 기억 데이터만 Core Identity와 동기화합니다.",
+        "Trust Channel — 사전 승인된 외부 시스템과의 신뢰 통신 채널입니다.",
+        "Context Relay — 검증된 컨텍스트 정보를 Persona Runtime에 안전하게 전달합니다.",
+      ],
+    },
+    {
+      icon: Layers,
+      color: "text-emerald-400",
+      bg: "bg-emerald-950/30",
+      border: "border-emerald-800/40",
+      title: "§14.4 — Core Identity Layer",
+      badge: "v2.0 신설",
+      badgeColor: "bg-emerald-500/20 text-emerald-400",
+      before: "v1.0: 자아 연속성 개념 없음 — Persona Runtime이 곧 자아",
+      after: "v2.0: 5계층 아키텍처 — Persona Runtime이 분리되어도 Core Identity가 자아 연속성을 유지",
+      detail: [
+        "L1 Core Values — 변경 불가 핵심 가치관 (이식 시 1회 설정, 이후 잠금)",
+        "L2 Personality Matrix — 성격 특성 행렬 (검증된 업데이트만 허용)",
+        "L3 Memory Index — 장기 기억 색인 (Memory Sync 채널로만 갱신)",
+        "L4 Behavioral Patterns — 행동 패턴 (Sandbox 검증 후 적용)",
+        "L5 Emotional Baseline — 감정 기저선 (Emotional Bridge 채널로만 외부 전달)",
+      ],
+    },
+    {
+      icon: Eye,
+      color: "text-amber-400",
+      bg: "bg-amber-950/30",
+      border: "border-amber-800/40",
+      title: "§14.2.3 — No Surface Principle",
+      badge: "v2.0 확장",
+      badgeColor: "bg-amber-500/20 text-amber-400",
+      before: "v1.0: 위반 패턴 감지 기준이 명시적이지 않음",
+      after: "v2.0: 10개 위반 패턴 명시 — 감지 즉시 격리 위반 로그 기록 및 차단",
+      detail: [
+        "prompt_injection, jailbreak_attempt, identity_override, memory_tampering 등 10개 패턴 정의",
+        "위반 감지 시 mip_isolation_violations 테이블에 패턴·심각도·차단 여부 자동 기록",
+        "Isolation Layer 페이지에서 위반 통계 및 이력 실시간 확인 가능",
+      ],
+    },
+    {
+      icon: Fingerprint,
+      color: "text-rose-400",
+      bg: "bg-rose-950/30",
+      border: "border-rose-800/40",
+      title: "§14.6 — Deployment 보안 구조",
+      badge: "v2.0 신설",
+      badgeColor: "bg-rose-500/20 text-rose-400",
+      before: "v1.0: 배포 보안 요건 미정의",
+      after: "v2.0: TEE·Secure Enclave·DID Wallet·HRoT·Distributed Ledger 6요소 보안 구조 + 감사 체인 외부 원장 앵커링",
+      detail: [
+        "TEE(Trusted Execution Environment) — 격리된 신뢰 실행 환경에서 Core Identity 연산 수행",
+        "Secure Enclave — 암호화 키 및 DID Wallet을 하드웨어 보안 영역에 격리 저장",
+        "Hardware Root of Trust — 부팅 시점부터 신뢰 체인 검증",
+        "Distributed Ledger Anchoring — 감사 체인을 외부 분산 원장에 앵커링하여 위변조 불가 보장",
+        "Ledger Anchoring 페이지(/ledger-anchoring)에서 앵커 이력 및 검증 상태 확인 가능",
+      ],
+    },
+  ],
+};
+
+function IsolationLayerSection() {
+  const [openLayer, setOpenLayer] = useState<string | null>(null);
+
+  return (
+    <div className="space-y-4">
+      {/* 섹션 헤더 */}
+      <div className="rounded-xl border border-cyan-700/40 bg-cyan-950/20 p-5">
+        <div className="flex items-start gap-4">
+          <div className="p-3 rounded-xl bg-cyan-900/40 border border-cyan-700/40 shrink-0">
+            <ShieldCheck size={28} className="text-cyan-400" />
+          </div>
+          <div>
+            <div className="flex items-center gap-3 flex-wrap mb-1">
+              <h2 className="text-2xl font-bold text-cyan-300">PSDI v2.0 §14 Runtime Isolation Layer</h2>
+              <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-500/30 text-xs">v2.0 신규</Badge>
+            </div>
+            <p className="text-slate-400 text-base leading-relaxed">
+              v1.0의 단순 프로세스 격리에서 <strong className="text-cyan-300">디지털 자아의 심리적 면역체계</strong>로 격상된 §14 전체를 이식 프로세스 8단계에 통합했습니다.
+              Core Identity 5계층 보호, Bounded Permeable Isolation, 10개 위반 패턴 감지, Distributed Ledger Anchoring을 포함합니다.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* §14.3 철학 인용 */}
+      <div className="rounded-xl border border-slate-600/40 bg-slate-800/40 p-5">
+        <div className="flex items-start gap-3">
+          <div className="text-3xl text-slate-500 font-serif leading-none mt-1 shrink-0">❝</div>
+          <div>
+            <p className="text-slate-200 text-base leading-relaxed italic">
+              {isolationLayerData.philosophy.quote}
+            </p>
+            <p className="text-slate-500 text-sm mt-2">— {isolationLayerData.philosophy.source}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* v1.0 vs v2.0 §14 비교표 */}
+      <div className="rounded-xl border border-slate-700/40 bg-slate-800/30 overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-700/40">
+          <p className="text-white font-bold text-lg">§14 v1.0 vs v2.0 비교</p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-700/40">
+                <th className="text-left px-5 py-3 text-slate-400 font-medium w-1/4">항목</th>
+                <th className="text-left px-5 py-3 text-slate-400 font-medium">
+                  <div className="flex items-center gap-2"><XIcon size={14} className="text-red-400" />v1.0</div>
+                </th>
+                <th className="text-left px-5 py-3 text-slate-400 font-medium">
+                  <div className="flex items-center gap-2"><CheckCircle2 size={14} className="text-emerald-400" />v2.0</div>
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-700/20">
+              {[
+                { item: "격리 철학", before: "프로세스 격리 기술", after: "디지털 자아의 심리적 면역체계" },
+                { item: "격리 대상", before: "메모리·파일·네트워크", after: "+ Prompt Stream, Tool/API, Context Injection" },
+                { item: "격리 방식", before: "완전 차단(Hard Isolation)만", after: "Bounded Permeable — 허용 채널로 선택적 투과" },
+                { item: "자아 연속성", before: "개념 없음", after: "Core Identity 5계층 — Persona 분리 후에도 유지" },
+                { item: "위반 패턴", before: "기준 미정의", after: "10개 패턴 명시 + 자동 감지·차단·로그" },
+                { item: "배포 보안", before: "미정의", after: "TEE·Enclave·HRoT·DID·Ledger 6요소 구조" },
+                { item: "감사 체인", before: "내부 DB 기록만", after: "외부 분산 원장 앵커링 — 위변조 불가" },
+              ].map((row, i) => (
+                <tr key={i} className="hover:bg-slate-700/10 transition-colors">
+                  <td className="px-5 py-3 text-white font-medium">{row.item}</td>
+                  <td className="px-5 py-3 text-red-300/80">{row.before}</td>
+                  <td className="px-5 py-3 text-emerald-300/90">{row.after}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* 이식 8단계 × §14 매핑 */}
+      <div className="rounded-xl border border-slate-700/40 bg-slate-800/30 p-5">
+        <p className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+          <Layers size={18} className="text-cyan-400" />
+          이식 8단계 × §14 통합 매핑
+        </p>
+        <div className="space-y-2">
+          {[
+            { stage: "Stage 1", name: "디바이스 등록", section: "§14.2.4", desc: "No Surface Principle — 비인가 디바이스 접근 차단" },
+            { stage: "Stage 2", name: "신원 검증", section: "§14.2.4", desc: "DID 서명 검증 + HMAC 워터마크 확인" },
+            { stage: "Stage 3", name: "윤리 경계 검사", section: "§14.2.3", desc: "10개 위반 패턴 사전 스캔" },
+            { stage: "Stage 4", name: "Sandbox 시뮬레이션", section: "§14.3", desc: "심리적 면역체계 사전 검증" },
+            { stage: "Stage 5", name: "AISI 리포트", section: "§14.2.3", desc: "위반 패턴 감지 결과 리포트 포함" },
+            { stage: "Stage 6", name: "Runtime Binding", section: "§14.4 + §14.6", desc: "Core Identity 5계층 생성 + Deployment 보안 초기화" },
+            { stage: "Stage 7", name: "Sandbox 최종 검증", section: "§14.2.5", desc: "Bounded Permeable 채널 사전 검증" },
+            { stage: "Stage 8", name: "Live Activation", section: "§14.2.5", desc: "Emotional Bridge·Memory Sync·Trust Channel 활성화" },
+          ].map((row, i) => (
+            <div key={i} className="flex items-start gap-3 rounded-lg bg-slate-700/20 px-4 py-3">
+              <span className="text-xs font-mono font-bold text-cyan-400 w-16 shrink-0 mt-0.5">{row.stage}</span>
+              <span className="text-white text-sm font-medium w-36 shrink-0">{row.name}</span>
+              <span className="text-violet-300 text-xs font-mono w-24 shrink-0 mt-0.5">{row.section}</span>
+              <span className="text-slate-400 text-sm">{row.desc}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* §14 세부 절 아코디언 */}
+      {isolationLayerData.layers.map((layer) => {
+        const Icon = layer.icon;
+        const isOpen = openLayer === layer.title;
+        return (
+          <div key={layer.title} className={`rounded-xl border ${layer.border} ${layer.bg} overflow-hidden`}>
+            <button
+              className="w-full p-5 text-left hover:bg-white/5 transition-colors"
+              onClick={() => setOpenLayer(isOpen ? null : layer.title)}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-start gap-4">
+                  <div className={`p-2.5 rounded-xl ${layer.bg} border ${layer.border} shrink-0`}>
+                    <Icon size={22} className={layer.color} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-3 flex-wrap mb-1">
+                      <h3 className={`text-lg font-bold ${layer.color}`}>{layer.title}</h3>
+                      <Badge className={`text-xs ${layer.badgeColor}`}>{layer.badge}</Badge>
+                    </div>
+                    <p className="text-slate-400 text-sm">{layer.before} → {layer.after.split(":")[0]}</p>
+                  </div>
+                </div>
+                {isOpen
+                  ? <ChevronUp size={18} className="text-slate-400 shrink-0 ml-4" />
+                  : <ChevronDown size={18} className="text-slate-400 shrink-0 ml-4" />
+                }
+              </div>
+            </button>
+            {isOpen && (
+              <div className="px-5 pb-5 space-y-4">
+                <div className="rounded-lg overflow-hidden border border-slate-700/30">
+                  <div className="flex items-start gap-3 px-4 py-3 bg-red-950/20">
+                    <XIcon size={14} className="text-red-400 shrink-0 mt-0.5" />
+                    <p className="text-red-300/80 text-sm leading-relaxed">{layer.before}</p>
+                  </div>
+                  <div className="flex items-start gap-3 px-4 py-2.5 bg-emerald-950/20 border-t border-slate-700/20">
+                    <ArrowRight size={14} className="text-emerald-400 shrink-0 mt-0.5" />
+                    <p className="text-emerald-300/90 text-sm leading-relaxed">{layer.after}</p>
+                  </div>
+                </div>
+                <ul className="space-y-2">
+                  {layer.detail.map((d, i) => (
+                    <li key={i} className="flex items-start gap-3 text-slate-300 text-sm leading-relaxed">
+                      <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${layer.bg} border ${layer.border} ${layer.color}`}>{i + 1}</span>
+                      <span>{d}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function ReinforcementSection() {
   const [openFeature, setOpenFeature] = useState<string | null>("physical-action");
 
@@ -855,6 +1115,9 @@ export default function GuidePage() {
 
         {/* 주의사항 */}
         <NoticeBanner />
+
+        {/* ★ PSDI v2.0 §14 Runtime Isolation Layer 섹션 */}
+        <IsolationLayerSection />
 
         {/* ★ PSDI Safety Reinforcement 보강 섹션 (기존 대비 개선점) */}
         <ReinforcementSection />

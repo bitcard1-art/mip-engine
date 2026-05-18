@@ -4,7 +4,7 @@ import { Link, useLocation } from "wouter";
 import {
   Shield, Cpu, Package, Activity, Terminal, BookOpen,
   Link2, ChevronRight, LogOut, User, Menu, X, AlertTriangle,
-  Zap, Brain, RotateCcw, ShieldCheck
+  Zap, Brain, RotateCcw, ShieldCheck, Anchor
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ const NAV_ITEMS = [
   { path: "/emotional-risk", label: "Emotional Risk", icon: Brain },
   { path: "/dna-rollback", label: "DNA Rollback", icon: RotateCcw },
   { path: "/isolation-layer", label: "§14 Isolation Layer", icon: ShieldCheck },
+  { path: "/ledger-anchoring", label: "§14.6 Ledger Anchoring", icon: Anchor },
 ];
 
 interface MIPLayoutProps {

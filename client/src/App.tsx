@@ -19,6 +19,7 @@ import PhysicalActionPage from "./pages/PhysicalActionPage";
 import EmotionalRiskPage from "./pages/EmotionalRiskPage";
 import DnaRollbackPage from "./pages/DnaRollbackPage";
 import IsolationLayerPage from "./pages/IsolationLayerPage";
+import LedgerAnchoringPage from "./pages/LedgerAnchoringPage";
 
 function Router() {
   return (
@@ -38,6 +39,7 @@ function Router() {
       <Route path="/emotional-risk" component={EmotionalRiskPage} />
       <Route path="/dna-rollback" component={DnaRollbackPage} />
       <Route path="/isolation-layer" component={IsolationLayerPage} />
+      <Route path="/ledger-anchoring" component={LedgerAnchoringPage} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

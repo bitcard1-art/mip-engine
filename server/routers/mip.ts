@@ -48,7 +48,16 @@ import {
   mipDeploymentSecurity,
   mipIsolationViolations,
   mipEmotionalBridgeEvents,
+  mipLedgerAnchors,
+  mipLedgerAnchorDlq,
 } from "../../drizzle/schema";
+import {
+  anchorToLedger,
+  verifyAnchor,
+  getLedgerAnchors,
+  getLedgerAnchorStats,
+  retryLedgerDlq,
+} from "../mip/ledger-anchoring";
 
 // ─── Zod 스키마 ───────────────────────────────────────────────────────────────
 
@@ -756,6 +765,74 @@ export const mipRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         return rollbackDna(input.packageId, input.targetVersionId, String(ctx.user.id));
+      }),
+  }),
+
+  // ─── §14.6 Distributed Ledger Anchoring ────────────────────────────────────
+  ledgerAnchoring: router({
+    // 수동 앙커링 (API 테스트 용)
+    anchor: protectedProcedure
+      .input(z.object({
+        entityType: z.enum(["implantation", "device", "package", "sandbox_report", "safety_log", "policy", "session"]),
+        entityId: z.string(),
+        action: z.string(),
+        data: z.record(z.string(), z.unknown()).optional(),
+        implantationId: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return anchorToLedger({
+          entityType: input.entityType,
+          entityId: input.entityId,
+          action: input.action,
+          actorId: String(ctx.user.id),
+          data: input.data ?? {},
+          implantationId: input.implantationId,
+        });
+      }),
+    // 앙커 검증
+    verify: protectedProcedure
+      .input(z.object({ anchorId: z.string() }))
+      .mutation(async ({ input }) => {
+        return verifyAnchor(input.anchorId);
+      }),
+    // 앙커 이력 조회
+    list: protectedProcedure
+      .input(z.object({
+        implantationId: z.string().optional(),
+        entityType: z.string().optional(),
+        limit: z.number().default(50),
+      }))
+      .query(async ({ input }) => {
+        return getLedgerAnchors(input);
+      }),
+    // 앙커 통계
+    stats: protectedProcedure
+      .query(async () => {
+        return getLedgerAnchorStats();
+      }),
+    // DLQ 재시도 (수동 트리거)
+    retryDlq: protectedProcedure
+      .mutation(async () => {
+        return retryLedgerDlq();
+      }),
+    // DLQ 목록
+    dlqList: protectedProcedure
+      .input(z.object({ limit: z.number().default(20) }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        return db.select().from(mipLedgerAnchorDlq)
+          .orderBy(desc(mipLedgerAnchorDlq.createdAt))
+          .limit(input.limit);
+      }),
+    // 대시보드
+    dashboard: protectedProcedure
+      .query(async () => {
+        const [stats, recentAnchors] = await Promise.all([
+          getLedgerAnchorStats(),
+          getLedgerAnchors({ limit: 10 }),
+        ]);
+        return { stats, recentAnchors };
       }),
   }),
 });
