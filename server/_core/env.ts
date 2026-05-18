@@ -17,4 +17,8 @@ export const ENV = {
   mipLoreSharedSecret: process.env.MIP_LORE_SHARED_SECRET ?? "",
   loreWebhookUrl: process.env.LORE_WEBHOOK_URL ?? "https://lore.mysoma.space",
   loreServiceUrl: process.env.LORE_SERVICE_URL ?? "https://lore.mysoma.space",
+  // 한결(Hangyeol) ↔ MIP 연동
+  hangyeolMipSharedSecret: process.env.HANGYEOL_MIP_SHARED_SECRET ?? "",
+  mipHangyeolSharedSecret: process.env.MIP_HANGYEOL_SHARED_SECRET ?? "",
+  hangyeolServiceUrl: process.env.HANGYEOL_SERVICE_URL ?? "https://hangyeol.mysoma.space",
 };

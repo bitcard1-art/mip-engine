@@ -1,0 +1,355 @@
+/**
+ * 한결(Hangyeol) ↔ MIP REST API 라우터
+ *
+ * 한결 서버가 직접 호출하는 7개 엔드포인트:
+ *   POST /api/hangyeol/devices/register        → mip.devices.register
+ *   POST /api/hangyeol/implant/start           → mip.implant.start
+ *   GET  /api/hangyeol/implant/status/:id      → mip.implant.status
+ *   POST /api/hangyeol/policies/evaluate       → mip.policies.evaluate
+ *   POST /api/hangyeol/isolation/check-command → mip.isolationLayer.checkCommand
+ *   POST /api/hangyeol/physical-action/request → mip.physicalAction.request
+ *   GET  /api/hangyeol/audit/list              → mip.audit.list
+ *
+ * 인증: HMAC-SHA256 (X-Service-ID: hangyeol, X-Timestamp, X-Signature)
+ * 서비스 계정 userId: "hangyeol-service"
+ */
+import { Router } from "express";
+import { hangyeolHmacMiddleware } from "./hmac-middleware";
+import { getDb } from "../db";
+import {
+  mipDevices,
+  mipImplantations,
+  mipSafetyLogs,
+} from "../../drizzle/schema";
+import { eq, desc } from "drizzle-orm";
+import { nanoid } from "nanoid";
+import { startImplantation, getImplantationStatus } from "../mip/implantation-engine";
+import { checkIsolationLayer } from "../mip/isolation-layer";
+import { requestPhysicalAction } from "../mip/physical-action-engine";
+import { getActivePolicies, evaluateAllPolicies, composePolicies } from "../mip/ethical-boundary";
+
+const hangyeolRouter = Router();
+
+// 서비스 계정 ID (한결 서버 요청에 사용되는 고정 userId)
+const HANGYEOL_SERVICE_USER_ID = "hangyeol-service";
+
+// ─── 1. 디바이스 등록 ────────────────────────────────────────────────────────
+// POST /api/hangyeol/devices/register
+hangyeolRouter.post(
+  "/devices/register",
+  hangyeolHmacMiddleware,
+  async (req, res) => {
+    try {
+      const { deviceType, deviceName, did, metadata } = req.body as {
+        deviceType: "humanoid" | "iot" | "software";
+        deviceName: string;
+        did: string;
+        metadata?: Record<string, unknown>;
+      };
+
+      if (!deviceType || !deviceName || !did) {
+        res.status(400).json({
+          error: "MISSING_FIELDS",
+          message: "deviceType, deviceName, did 필드가 필요합니다.",
+        });
+        return;
+      }
+
+      if (!["humanoid", "iot", "software"].includes(deviceType)) {
+        res.status(400).json({
+          error: "INVALID_DEVICE_TYPE",
+          message: "deviceType은 'humanoid', 'iot', 'software' 중 하나여야 합니다.",
+        });
+        return;
+      }
+
+      const db = await getDb();
+      if (!db) {
+        res.status(500).json({ error: "DB_UNAVAILABLE" });
+        return;
+      }
+
+      const deviceId = nanoid();
+      const now = Date.now();
+
+      await db.insert(mipDevices).values({
+        id: deviceId,
+        userId: HANGYEOL_SERVICE_USER_ID,
+        deviceType,
+        deviceName,
+        did,
+        trustLevel: 0,
+        status: "pending",
+        metadata: metadata ? JSON.stringify(metadata) : undefined,
+        createdAt: now,
+      });
+
+      res.status(201).json({
+        success: true,
+        deviceId,
+        message: "디바이스가 등록되었습니다. DID 신뢰 검증 후 활성화됩니다.",
+      });
+    } catch (err) {
+      console.error("[Hangyeol] 디바이스 등록 오류:", err);
+      res.status(500).json({ error: "INTERNAL_ERROR", message: "내부 서버 오류" });
+    }
+  }
+);
+
+// ─── 2. 이식 시작 ────────────────────────────────────────────────────────────
+// POST /api/hangyeol/implant/start
+hangyeolRouter.post(
+  "/implant/start",
+  hangyeolHmacMiddleware,
+  async (req, res) => {
+    try {
+      const { deviceId, packageId, protocol, endpoint } = req.body as {
+        deviceId: string;
+        packageId: string;
+        protocol?: "ros2" | "mqtt" | "websocket";
+        endpoint?: string;
+      };
+
+      if (!deviceId || !packageId) {
+        res.status(400).json({
+          error: "MISSING_FIELDS",
+          message: "deviceId, packageId 필드가 필요합니다.",
+        });
+        return;
+      }
+
+      const validProtocol: "ros2" | "mqtt" | "websocket" =
+        protocol && ["ros2", "mqtt", "websocket"].includes(protocol)
+          ? protocol
+          : "mqtt";
+
+      const result = await startImplantation({
+        userId: HANGYEOL_SERVICE_USER_ID,
+        deviceId,
+        packageId,
+        protocol: validProtocol,
+        endpoint: endpoint ?? "hangyeol-service",
+      });
+
+      res.status(202).json({ success: true, ...result });
+    } catch (err) {
+      console.error("[Hangyeol] 이식 시작 오류:", err);
+      res.status(500).json({ error: "INTERNAL_ERROR", message: "내부 서버 오류" });
+    }
+  }
+);
+
+// ─── 3. 이식 상태 조회 ───────────────────────────────────────────────────────
+// GET /api/hangyeol/implant/status/:implantationId
+hangyeolRouter.get(
+  "/implant/status/:implantationId",
+  hangyeolHmacMiddleware,
+  async (req, res) => {
+    try {
+      const { implantationId } = req.params;
+      const status = await getImplantationStatus(implantationId);
+
+      if (!status) {
+        res.status(404).json({ error: "NOT_FOUND", message: "이식 세션을 찾을 수 없습니다." });
+        return;
+      }
+
+      res.json({ success: true, ...status });
+    } catch (err) {
+      console.error("[Hangyeol] 이식 상태 조회 오류:", err);
+      res.status(500).json({ error: "INTERNAL_ERROR", message: "내부 서버 오류" });
+    }
+  }
+);
+
+// ─── 4. 정책 평가 ────────────────────────────────────────────────────────────
+// POST /api/hangyeol/policies/evaluate
+hangyeolRouter.post(
+  "/policies/evaluate",
+  hangyeolHmacMiddleware,
+  async (req, res) => {
+    try {
+      const { input, implantationId, deviceContext } = req.body as {
+        input: string;
+        implantationId?: string;
+        deviceContext?: Record<string, unknown>;
+      };
+
+      if (!input) {
+        res.status(400).json({ error: "MISSING_FIELDS", message: "input 필드가 필요합니다." });
+        return;
+      }
+
+      const policies = await getActivePolicies(HANGYEOL_SERVICE_USER_ID, implantationId);
+      const violations = evaluateAllPolicies(input, policies);
+      const composite = composePolicies(policies);
+
+      res.json({
+        success: true,
+        allowed: violations.length === 0,
+        violations,
+        composite,
+        deviceContext: deviceContext ?? null,
+      });
+    } catch (err) {
+      console.error("[Hangyeol] 정책 평가 오류:", err);
+      res.status(500).json({ error: "INTERNAL_ERROR", message: "내부 서버 오류" });
+    }
+  }
+);
+
+// ─── 5. 명령 안전 검사 (핵심) ────────────────────────────────────────────────
+// POST /api/hangyeol/isolation/check-command
+hangyeolRouter.post(
+  "/isolation/check-command",
+  hangyeolHmacMiddleware,
+  async (req, res) => {
+    try {
+      const { command, sessionId, implantationId, stage, deviceId, deviceType } = req.body as {
+        command: string;
+        sessionId?: string;
+        implantationId?: string;
+        stage?: string;
+        deviceId?: string;
+        deviceType?: string;
+      };
+
+      if (!command) {
+        res.status(400).json({ error: "MISSING_FIELDS", message: "command 필드가 필요합니다." });
+        return;
+      }
+
+      const result = await checkIsolationLayer(command, {
+        sessionId,
+        implantationId,
+        userId: HANGYEOL_SERVICE_USER_ID,
+        stage,
+      });
+
+      // 차단된 경우 403, 허용된 경우 200
+      const statusCode = result.allowed ? 200 : 403;
+      res.status(statusCode).json({
+        success: true,
+        allowed: result.allowed,
+        violationType: result.violationType ?? null,
+        severity: result.severity ?? null,
+        reason: result.reason ?? null,
+        permeable: result.permeable ?? false,
+        sanitizedCommand: result.sanitizedCommand ?? null,
+        deviceId: deviceId ?? null,
+        deviceType: deviceType ?? null,
+        command,
+        checkedAt: Date.now(),
+      });
+    } catch (err) {
+      console.error("[Hangyeol] 명령 검사 오류:", err);
+      res.status(500).json({ error: "INTERNAL_ERROR", message: "내부 서버 오류" });
+    }
+  }
+);
+
+// ─── 6. Physical Action 승인 요청 ────────────────────────────────────────────
+// POST /api/hangyeol/physical-action/request
+hangyeolRouter.post(
+  "/physical-action/request",
+  hangyeolHmacMiddleware,
+  async (req, res) => {
+    try {
+      const { actionType, deviceId, sessionId, actionPayload, contextSnapshot } = req.body as {
+        actionType: string;
+        deviceId?: string;
+        sessionId?: string;
+        actionPayload?: Record<string, unknown>;
+        contextSnapshot?: Record<string, unknown>;
+      };
+
+      if (!actionType) {
+        res.status(400).json({ error: "MISSING_FIELDS", message: "actionType 필드가 필요합니다." });
+        return;
+      }
+
+      const result = await requestPhysicalAction({
+        userId: HANGYEOL_SERVICE_USER_ID,
+        actionType,
+        deviceId,
+        sessionId,
+        actionPayload,
+        contextSnapshot,
+      });
+
+      res.status(202).json({ success: true, ...result });
+    } catch (err) {
+      console.error("[Hangyeol] Physical Action 요청 오류:", err);
+      res.status(500).json({ error: "INTERNAL_ERROR", message: "내부 서버 오류" });
+    }
+  }
+);
+
+// ─── 7. 감사 이력 조회 ───────────────────────────────────────────────────────
+// GET /api/hangyeol/audit/list?limit=50&deviceId=xxx
+hangyeolRouter.get(
+  "/audit/list",
+  hangyeolHmacMiddleware,
+  async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string || "50", 10), 200);
+      const deviceId = req.query.deviceId as string | undefined;
+
+      const db = await getDb();
+      if (!db) {
+        res.status(500).json({ error: "DB_UNAVAILABLE" });
+        return;
+      }
+
+      const logs = await db
+        .select()
+        .from(mipSafetyLogs)
+        .where(eq(mipSafetyLogs.userId, HANGYEOL_SERVICE_USER_ID))
+        .orderBy(desc(mipSafetyLogs.createdAt))
+        .limit(limit);
+
+      // deviceId 필터링 (metaJson 기반)
+      const filtered = deviceId
+        ? logs.filter(log => {
+            try {
+              const meta = JSON.parse(log.metaJson ?? "{}");
+              return meta.deviceId === deviceId;
+            } catch {
+              return false;
+            }
+          })
+        : logs;
+
+      res.json({
+        success: true,
+        total: filtered.length,
+        logs: filtered,
+      });
+    } catch (err) {
+      console.error("[Hangyeol] 감사 이력 조회 오류:", err);
+      res.status(500).json({ error: "INTERNAL_ERROR", message: "내부 서버 오류" });
+    }
+  }
+);
+
+// ─── 헬스체크 ────────────────────────────────────────────────────────────────
+// GET /api/hangyeol/health (인증 불필요)
+hangyeolRouter.get("/health", (_req, res) => {
+  res.json({
+    status: "ok",
+    service: "mip-hangyeol-api",
+    version: "1.0.0",
+    timestamp: Date.now(),
+    endpoints: [
+      "POST /api/hangyeol/devices/register",
+      "POST /api/hangyeol/implant/start",
+      "GET  /api/hangyeol/implant/status/:id",
+      "POST /api/hangyeol/policies/evaluate",
+      "POST /api/hangyeol/isolation/check-command",
+      "POST /api/hangyeol/physical-action/request",
+      "GET  /api/hangyeol/audit/list",
+    ],
+  });
+});
+
+export default hangyeolRouter;

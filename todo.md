@@ -120,3 +120,14 @@
 ## Phase 12: 사이드바 메뉴 카테고리 그룹화
 
 - [x] MIPLayout.tsx NAV_ITEMS를 4개 그룹으로 재구조화 (이식 관리 / 안전 보강 / 보안·감사 / 설정·가이드)
+
+## Phase 13: 한결(hangyeol) ↔ MIP 서버-투-서버 연동
+
+- [x] MIP server/hangyeol/hmac-middleware.ts — Shared Secret HMAC 인증 미들웨어
+- [x] MIP server/hangyeol/hangyeol-router.ts — 7개 REST 엔드포인트
+- [x] MIP server/_core/index.ts에 /api/hangyeol/* 라우트 등록
+- [x] MIP HANGYEOL_MIP_SHARED_SECRET, MIP_HANGYEOL_SHARED_SECRET 환경변수 설정 (저장 완료)
+- [x] server/hangyeol/test-samsung-devices.ts — 삼성 에어콘(AF17B6474WZN) + TV(KQ65QC88AF) 7단계 테스트 스크립트
+- [x] server/hangyeol/HANGYEOL_MIP_INTEGRATION_GUIDE.md — 한결 팀 연동 가이드 문서
+- [ ] 실제 배포 서버에서 삼성 디바이스 엔드-투-엔드 테스트 통과 확인
+- [ ] test-samsung-devices.ts 하드 실패형 보강 (각 단계 status 검증, 예상 허용/차단 결과 assert, 실패 시 process.exit(1))
