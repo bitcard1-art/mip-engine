@@ -396,33 +396,33 @@ export default function PackagesPage() {
     <MIPLayout title="MIO Package">
       <div className="space-y-6">
         {/* 헤더 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">MIO Package</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              LORE로부터 수신된 사용자의 디지털 자아 패키지 목록입니다.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
+        <div className="space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="text-2xl font-bold text-foreground">MIO Package</h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                LORE로부터 수신된 사용자의 디지털 자아 패키지 목록입니다.
+              </p>
+            </div>
             <Button
               variant="outline"
               size="sm"
               onClick={() => refetch()}
               disabled={isFetching}
-              className="gap-2"
+              className="gap-2 shrink-0"
             >
               <RefreshCw className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} />
-              새로고침
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => setShowRequestDialog(true)}
-              className="gap-2 bg-primary hover:bg-primary/90"
-            >
-              <Sparkles className="w-4 h-4" />
-              패키지 요청
+              <span className="hidden sm:inline">새로고침</span>
             </Button>
           </div>
+          <Button
+            size="sm"
+            onClick={() => setShowRequestDialog(true)}
+            className="gap-2 bg-primary hover:bg-primary/90 w-full sm:w-auto"
+          >
+            <Sparkles className="w-4 h-4" />
+            LORE에 패키지 요청
+          </Button>
         </div>
 
         {/* 통계 카드 */}
