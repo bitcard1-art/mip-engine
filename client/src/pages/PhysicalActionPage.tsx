@@ -159,6 +159,20 @@ export default function PhysicalActionPage() {
             >
               {requestMutation.isPending ? "처리 중..." : "요청 전송"}
             </Button>
+            <Button
+              onClick={() => {
+                setSelectedAction("__all__");
+                setTimeout(() => {
+                  for (const [key] of actionEntries) {
+                    requestMutation.mutate({ actionType: key });
+                  }
+                }, 100);
+              }}
+              disabled={requestMutation.isPending}
+              className="bg-cyan-600 hover:bg-cyan-700 text-white whitespace-nowrap"
+            >
+              ★ 전체 요청
+            </Button>
           </CardContent>
         </Card>
 
