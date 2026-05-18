@@ -91,7 +91,8 @@ export async function verifyDeviceTrust(
 
     const device = devices[0];
 
-    if (device.userId !== userId) {
+    // 'system' 소유 디바이스(시드된 IoT 기기)는 모든 인증된 사용자가 사용 가능
+    if (device.userId !== userId && device.userId !== "system" && device.userId !== "hangyeol-service") {
       return { trusted: false, trustLevel: 0, reason: "Device ownership mismatch" };
     }
 

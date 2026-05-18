@@ -140,3 +140,7 @@
 - [x] IoT 전용 MIO 패키지 DB 시드 (psdi-v2-iot-standard 등 3개)
 - [x] 이식 시작 모달에서 패키지 ID를 드롭다운으로 선택하도록 UI 수정
 - [x] 패키지 목록 tRPC 쿼리 연결
+
+## Phase 15: 신뢰 검증 실패 수정
+
+- [x] verifyDeviceTrust에서 system/hangyeol-service 소유 디바이스는 모든 인증된 사용자가 사용 가능하도록 수정
