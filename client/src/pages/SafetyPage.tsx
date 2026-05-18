@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Activity, Zap, RefreshCw, Shield } from "lucide-react";
 import { toast } from "sonner";
+import DeviceSelector, { DeviceBadge, type SelectedDevice } from "@/components/DeviceSelector";
 
 const SEVERITY_CONFIG: Record<string, { label: string; bg: string; text: string; border: string }> = {
   emergency: { label: "긴급", bg: "bg-red-500/10", text: "text-red-400", border: "border-red-500/20" },
@@ -36,6 +37,7 @@ const SAFETY_LAYER_LABELS: Record<number, { name: string; desc: string }> = {
 };
 
 export default function SafetyPage() {
+  const [selectedDevice, setSelectedDevice] = useState<SelectedDevice | null>(null);
   const [killSwitchSessionId, setKillSwitchSessionId] = useState("");
   const utils = trpc.useUtils();
 
@@ -63,6 +65,22 @@ export default function SafetyPage() {
         <h2 className="text-lg font-semibold text-foreground">5계층 안전 구조 모니터링</h2>
         <p className="text-sm text-muted-foreground">실시간 이상 감지 및 자동 경보 시스템</p>
       </div>
+
+      {/* 디바이스 선택 */}
+      <Card className="bg-card border-border mb-6">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold text-foreground">대상 디바이스 선택</CardTitle>
+          <p className="text-xs text-muted-foreground">이식 완료된 디바이스를 선택하면 해당 디바이스의 안전 로그를 확인합니다.</p>
+        </CardHeader>
+        <CardContent className="flex items-center gap-4">
+          <DeviceSelector
+            value={selectedDevice}
+            onChange={setSelectedDevice}
+            className="flex-1"
+          />
+          {selectedDevice && <DeviceBadge device={selectedDevice} />}
+        </CardContent>
+      </Card>
 
       {/* Safety Layers */}
       <div className="grid grid-cols-5 gap-2 mb-6">
