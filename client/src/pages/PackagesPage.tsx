@@ -1,6 +1,7 @@
 /**
  * MIO Package 페이지
  * LORE로부터 수신된 MIO Package 목록, 상태, 내용 확인
+ * + LORE에 새 패키지 요청 기능 (8자아 선택/전체선택)
  */
 import { useState } from "react";
 import MIPLayout from "@/components/MIPLayout";
@@ -11,10 +12,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import {
   Package, CheckCircle2, XCircle, Clock, AlertTriangle,
   RefreshCw, ChevronRight, Dna, Brain, Network, Shield,
-  Calendar, Hash, Zap
+  Calendar, Hash, Zap, Send, Sparkles, Heart, Eye,
+  Users, Palette, Scale, BookOpen, Link2
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
@@ -27,6 +33,20 @@ const STATUS_CONFIG: Record<PackageStatus, { label: string; color: string; icon:
   invalid:   { label: "검증 실패", color: "bg-red-500/20 text-red-400 border-red-500/30",       icon: XCircle },
   expired:   { label: "만료됨",   color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30", icon: AlertTriangle },
 };
+
+// 8자아 정의
+const PERSONA_DEFS = [
+  { id: "emotional",   label: "감정 자아",   icon: Heart,    color: "text-rose-400",    desc: "감정 표현 및 정서 패턴" },
+  { id: "cognitive",   label: "인지 자아",   icon: Eye,      color: "text-blue-400",    desc: "사고 방식 및 판단 패턴" },
+  { id: "social",      label: "사회적 자아", icon: Users,    color: "text-green-400",   desc: "사회적 상호작용 패턴" },
+  { id: "creative",    label: "창의적 자아", icon: Palette,  color: "text-purple-400",  desc: "창작 및 표현 스타일" },
+  { id: "moral",       label: "도덕적 자아", icon: Scale,    color: "text-amber-400",   desc: "가치관 및 윤리 판단" },
+  { id: "habitual",    label: "습관적 자아", icon: RefreshCw, color: "text-cyan-400",   desc: "일상 루틴 및 행동 습관" },
+  { id: "linguistic",  label: "언어적 자아", icon: BookOpen, color: "text-orange-400",  desc: "언어 사용 및 소통 스타일" },
+  { id: "relational",  label: "관계적 자아", icon: Link2,    color: "text-pink-400",    desc: "관계 형성 및 유지 패턴" },
+] as const;
+
+type PersonaId = typeof PERSONA_DEFS[number]["id"];
 
 function StatusBadge({ status }: { status: PackageStatus }) {
   const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.received;
@@ -53,6 +73,169 @@ function formatTtl(ttl: number) {
   return `${hours}시간 남음`;
 }
 
+// ─── 패키지 요청 다이얼로그 ─────────────────────────────────────────────────
+function RequestPackageDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [selectedPersonas, setSelectedPersonas] = useState<PersonaId[]>([]);
+  const [selectAll, setSelectAll] = useState(false);
+  const [urgency, setUrgency] = useState<"low" | "medium" | "high">("medium");
+  const [purpose, setPurpose] = useState<"humanoid_implant" | "software_runtime" | "iot_device">("software_runtime");
+
+  const requestMutation = trpc.mip.packages.requestFromLore.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message, {
+        description: `요청 ID: ${data.requestId} | 예상 소요: ${Math.round(data.estimatedCompletionMs / 1000)}초`,
+      });
+      onClose();
+      setSelectedPersonas([]);
+      setSelectAll(false);
+    },
+    onError: (err) => {
+      toast.error("패키지 요청 실패", { description: err.message });
+    },
+  });
+
+  const handleSelectAll = (checked: boolean) => {
+    setSelectAll(checked);
+    if (checked) {
+      setSelectedPersonas(PERSONA_DEFS.map(p => p.id));
+    } else {
+      setSelectedPersonas([]);
+    }
+  };
+
+  const handleTogglePersona = (id: PersonaId) => {
+    setSelectedPersonas(prev => {
+      const next = prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id];
+      setSelectAll(next.length === PERSONA_DEFS.length);
+      return next;
+    });
+  };
+
+  const handleSubmit = () => {
+    if (selectedPersonas.length === 0) {
+      toast.error("최소 1개 자아를 선택해주세요.");
+      return;
+    }
+    requestMutation.mutate({
+      personas: selectedPersonas,
+      selectAll,
+      urgency,
+      purpose,
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-lg">
+            <Sparkles className="w-5 h-5 text-primary" />
+            LORE에 MIO 패키지 요청
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-5 mt-2">
+          {/* 전체 선택 */}
+          <div className="flex items-center justify-between p-3 bg-primary/5 border border-primary/20 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="select-all"
+                checked={selectAll}
+                onCheckedChange={(checked) => handleSelectAll(!!checked)}
+              />
+              <label htmlFor="select-all" className="text-sm font-medium cursor-pointer">
+                전체 선택 (8자아 모두)
+              </label>
+            </div>
+            <Badge variant="outline" className="text-xs">
+              {selectedPersonas.length}/8 선택
+            </Badge>
+          </div>
+
+          {/* 8자아 체크박스 그리드 */}
+          <div className="grid grid-cols-2 gap-2">
+            {PERSONA_DEFS.map(persona => {
+              const Icon = persona.icon;
+              const isSelected = selectedPersonas.includes(persona.id);
+              return (
+                <div
+                  key={persona.id}
+                  className={`flex items-start gap-2.5 p-3 rounded-lg border cursor-pointer transition-all ${
+                    isSelected
+                      ? "bg-primary/10 border-primary/40"
+                      : "bg-muted/20 border-border/50 hover:border-border"
+                  }`}
+                  onClick={() => handleTogglePersona(persona.id)}
+                >
+                  <Checkbox
+                    checked={isSelected}
+                    onCheckedChange={() => handleTogglePersona(persona.id)}
+                    className="mt-0.5"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <Icon className={`w-3.5 h-3.5 ${persona.color}`} />
+                      <span className="text-sm font-medium">{persona.label}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">{persona.desc}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* 옵션 */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-xs text-muted-foreground">용도</label>
+              <Select value={purpose} onValueChange={(v) => setPurpose(v as typeof purpose)}>
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="software_runtime">소프트웨어 (챗봇)</SelectItem>
+                  <SelectItem value="iot_device">IoT 디바이스</SelectItem>
+                  <SelectItem value="humanoid_implant">휴머노이드</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs text-muted-foreground">긴급도</label>
+              <Select value={urgency} onValueChange={(v) => setUrgency(v as typeof urgency)}>
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">낮음</SelectItem>
+                  <SelectItem value="medium">보통</SelectItem>
+                  <SelectItem value="high">높음</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* 요청 버튼 */}
+          <Button
+            className="w-full gap-2"
+            onClick={handleSubmit}
+            disabled={selectedPersonas.length === 0 || requestMutation.isPending}
+          >
+            {requestMutation.isPending ? (
+              <RefreshCw className="w-4 h-4 animate-spin" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
+            {requestMutation.isPending
+              ? "요청 중..."
+              : `${selectedPersonas.length}개 자아 패키지 요청`}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── 패키지 상세 모달 ───────────────────────────────────────────────────────
 function PackageDetailModal({
   pkg,
   onClose,
@@ -193,9 +376,11 @@ function PackageDetailModal({
   );
 }
 
+// ─── 메인 페이지 ────────────────────────────────────────────────────────────
 export default function PackagesPage() {
   const [, setLocation] = useLocation();
   const [selectedPkg, setSelectedPkg] = useState<string | null>(null);
+  const [showRequestDialog, setShowRequestDialog] = useState(false);
   const { data: packages, isLoading, refetch, isFetching } = trpc.mip.packages.listAll.useQuery(undefined, {
     refetchInterval: 30000,
   });
@@ -218,16 +403,26 @@ export default function PackagesPage() {
               LORE로부터 수신된 사용자의 디지털 자아 패키지 목록입니다.
             </p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => refetch()}
-            disabled={isFetching}
-            className="gap-2"
-          >
-            <RefreshCw className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} />
-            새로고침
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} />
+              새로고침
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => setShowRequestDialog(true)}
+              className="gap-2 bg-primary hover:bg-primary/90"
+            >
+              <Sparkles className="w-4 h-4" />
+              패키지 요청
+            </Button>
+          </div>
         </div>
 
         {/* 통계 카드 */}
@@ -271,13 +466,16 @@ export default function PackagesPage() {
               <div className="text-center">
                 <p className="text-lg font-semibold text-foreground">수신된 Package가 없습니다</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  LORE에서 MIO Package를 전송하면 여기에 표시됩니다.
+                  LORE에 패키지를 요청하거나, LORE에서 직접 전송하면 여기에 표시됩니다.
                 </p>
               </div>
-              <div className="bg-muted/30 rounded-lg p-4 text-xs text-muted-foreground max-w-md text-center">
-                LORE 팀에 gdlee의 MIO Package 생성 및 전송을 요청하세요.
-                Package가 수신되면 자동으로 검증이 진행됩니다.
-              </div>
+              <Button
+                onClick={() => setShowRequestDialog(true)}
+                className="gap-2"
+              >
+                <Sparkles className="w-4 h-4" />
+                LORE에 패키지 요청하기
+              </Button>
             </CardContent>
           </Card>
         ) : (
@@ -349,6 +547,12 @@ export default function PackagesPage() {
           onStartImplant={handleStartImplant}
         />
       )}
+
+      {/* 패키지 요청 다이얼로그 */}
+      <RequestPackageDialog
+        open={showRequestDialog}
+        onClose={() => setShowRequestDialog(false)}
+      />
     </MIPLayout>
   );
 }

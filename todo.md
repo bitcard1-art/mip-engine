@@ -185,3 +185,9 @@
 - [x] DNA 롤백 페이지에 디바이스 선택 연동 (선택 시 packageId 자동 조회)
 - [x] 레드팀 페이지에 디바이스 선택 연동
 - [x] §14 격리층 페이지에 디바이스 선택 연동
+
+## Phase 23: MIO 패키지 요청 기능 (LORE 연동)
+
+- [x] MIO 패키지 페이지에 LORE 패키지 요청 버튼 추가 (8자아 선택/전체선택)
+- [x] LORE → MIP 전송 Webhook 수신 코드 정상 동작 확인 (receivers.ts 정상)
+- [x] 패키지 요청 시 LORE API로 요청 전송하는 백엔드 프로시저 구현 (packages.requestFromLore)

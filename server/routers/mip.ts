@@ -17,6 +17,7 @@ import {
   mipWebhookSendLogs,
   somaWebhookEvents,
   lorePackageEvents,
+  mipPackageRefreshRequests,
 } from "../../drizzle/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { receiveAndValidatePackage } from "../mip/package-receiver";
@@ -260,6 +261,90 @@ export const mipRouter = router({
           .limit(1);
         if (!pkg) throw new TRPCError({ code: "NOT_FOUND", message: "Package not found" });
         return pkg;
+      }),
+    requestFromLore: protectedProcedure
+      .input(z.object({
+        personas: z.array(z.enum([
+          "emotional",     // 감정 자아
+          "cognitive",     // 인지 자아
+          "social",        // 사회적 자아
+          "creative",      // 창의적 자아
+          "moral",         // 도덕적 자아
+          "habitual",      // 습관적 자아
+          "linguistic",    // 언어적 자아
+          "relational",    // 관계적 자아
+        ])).min(1, "최소 1개 자아를 선택해야 합니다."),
+        selectAll: z.boolean().default(false),
+        urgency: z.enum(["low", "medium", "high"]).default("medium"),
+        purpose: z.enum(["humanoid_implant", "software_runtime", "iot_device"]).default("software_runtime"),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { callLoreApi } = await import("../lore/webhook-sender");
+        const { appendAuditChain } = await import("../lib/audit");
+        const { nanoid } = await import("nanoid");
+
+        const requestId = nanoid();
+        const allPersonas = ["emotional", "cognitive", "social", "creative", "moral", "habitual", "linguistic", "relational"];
+        const selectedPersonas = input.selectAll ? allPersonas : input.personas;
+
+        // DB에 요청 기록
+        const db = await getDb();
+        if (db) {
+          await db.insert(mipPackageRefreshRequests).values({
+            id: nanoid(),
+            requestId,
+            packageId: `request-${requestId}`,
+            userId: String(ctx.user.id),
+            reason: "manual_request",
+            urgency: input.urgency,
+            status: "pending",
+            requestedAt: Date.now(),
+            createdAt: Date.now(),
+          });
+        }
+
+        // LORE에 패키지 생성 요청
+        const result = await callLoreApi("/api/mip/package-request", {
+          requestId,
+          userId: String(ctx.user.id),
+          personas: selectedPersonas,
+          selectAll: input.selectAll,
+          purpose: input.purpose,
+          urgency: input.urgency,
+          requestedAt: Date.now(),
+        });
+
+        if (!result.ok) {
+          // 실패 시 DB 상태 업데이트
+          if (db) {
+            const { eq } = await import("drizzle-orm");
+            await db
+              .update(mipPackageRefreshRequests)
+              .set({ status: "failed" })
+              .where(eq(mipPackageRefreshRequests.requestId, requestId));
+          }
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: `LORE 패키지 요청 실패 (HTTP ${result.status}). LORE 서비스 상태를 확인하세요.`,
+          });
+        }
+
+        // 감사 체인 기록
+        await appendAuditChain({
+          entityType: "package",
+          entityId: requestId,
+          action: "package_requested_from_lore",
+          actorId: String(ctx.user.id),
+          data: { requestId, personas: selectedPersonas, purpose: input.purpose, urgency: input.urgency },
+        });
+
+        const data = result.data as { estimatedCompletionMs?: number } | undefined;
+        return {
+          requestId,
+          personas: selectedPersonas,
+          estimatedCompletionMs: data?.estimatedCompletionMs ?? 30_000,
+          message: `LORE에 ${selectedPersonas.length}개 자아 패키지 생성을 요청했습니다.`,
+        };
       }),
   }),
 
