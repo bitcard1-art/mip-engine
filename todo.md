@@ -92,3 +92,10 @@
 - [x] UI: WebhookEventTable 컴포넌트 (최근 이벤트 이력 테이블, 성공/실패 구분)
 - [x] 대시보드 페이지에 연동 상태 패널 통합
 - [x] Vitest 테스트: integration.status 프로시저
+
+## 안전 보강 작업 (Safety Reinforcement Framework v1.0)
+
+- [x] Physical Action Tier 0~4 분류 기반 승인 시스템 구현 (DB 스키마 + tRPC + UI)
+- [x] Emotional Dependency Risk 감지 및 경고 시스템 구현 (DNA 감정 지표 기반)
+- [x] DNA Rollback 기능 구현 (Package 버전 관리 + 롤백 UI)
+- [x] server/mip/safety-reinforcement.test.ts — 10개 테스트 (Physical Action 6개, Emotional Risk 4개)

@@ -15,6 +15,9 @@ import AuditPage from "./pages/AuditPage";
 import LandingPage from "./pages/LandingPage";
 import GuidePage from "./pages/GuidePage";
 import PackagesPage from "./pages/PackagesPage";
+import PhysicalActionPage from "./pages/PhysicalActionPage";
+import EmotionalRiskPage from "./pages/EmotionalRiskPage";
+import DnaRollbackPage from "./pages/DnaRollbackPage";
 
 function Router() {
   return (
@@ -30,6 +33,9 @@ function Router() {
       <Route path="/audit" component={AuditPage} />
       <Route path="/packages" component={PackagesPage} />
       <Route path="/guide" component={GuidePage} />
+      <Route path="/physical-actions" component={PhysicalActionPage} />
+      <Route path="/emotional-risk" component={EmotionalRiskPage} />
+      <Route path="/dna-rollback" component={DnaRollbackPage} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

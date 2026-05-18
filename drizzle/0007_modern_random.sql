@@ -1,0 +1,60 @@
+CREATE TABLE `mip_emotional_risk_logs` (
+	`id` varchar(36) NOT NULL,
+	`user_id` varchar(36) NOT NULL,
+	`session_id` varchar(36),
+	`package_id` varchar(36),
+	`risk_level` enum('low','medium','high','critical') NOT NULL,
+	`risk_type` varchar(80) NOT NULL,
+	`emotion_score` int NOT NULL,
+	`dependency_score` int NOT NULL,
+	`isolation_score` int DEFAULT 0,
+	`trigger_indicators` text,
+	`warning_message` text,
+	`action_taken` varchar(100),
+	`resolved_at` bigint,
+	`detected_at` bigint NOT NULL,
+	`created_at` bigint NOT NULL,
+	CONSTRAINT `mip_emotional_risk_logs_id` PRIMARY KEY(`id`)
+);
+--> statement-breakpoint
+CREATE TABLE `mip_package_versions` (
+	`id` varchar(36) NOT NULL,
+	`package_id` varchar(36) NOT NULL,
+	`user_id` varchar(36) NOT NULL,
+	`version_number` int NOT NULL,
+	`version_tag` varchar(50),
+	`dna_hash` varchar(128) NOT NULL,
+	`pattern_hash` varchar(128),
+	`dna_snapshot` text,
+	`pattern_snapshot` text,
+	`context_json` text,
+	`did_signature` text NOT NULL,
+	`change_reason` varchar(200),
+	`changed_by` varchar(36),
+	`is_rollback_point` int DEFAULT 0,
+	`rolled_back_at` bigint,
+	`snapshot_at` bigint NOT NULL,
+	`created_at` bigint NOT NULL,
+	CONSTRAINT `mip_package_versions_id` PRIMARY KEY(`id`)
+);
+--> statement-breakpoint
+CREATE TABLE `mip_physical_actions` (
+	`id` varchar(36) NOT NULL,
+	`session_id` varchar(36),
+	`user_id` varchar(36) NOT NULL,
+	`device_id` varchar(36),
+	`tier` int NOT NULL,
+	`action_type` varchar(100) NOT NULL,
+	`action_category` varchar(50) NOT NULL,
+	`action_payload` text,
+	`approval_status` enum('pending','auto_approved','user_approved','mfa_approved','blocked','rejected','timeout') NOT NULL DEFAULT 'pending',
+	`approval_method` varchar(30),
+	`approved_by` varchar(36),
+	`context_snapshot` text,
+	`risk_score` int DEFAULT 0,
+	`block_reason` text,
+	`requested_at` bigint NOT NULL,
+	`resolved_at` bigint,
+	`created_at` bigint NOT NULL,
+	CONSTRAINT `mip_physical_actions_id` PRIMARY KEY(`id`)
+);

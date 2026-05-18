@@ -28,6 +28,10 @@ import { startImplantation, getImplantationStatus, cancelImplantation } from "..
 import { verifyHmacHeader } from "../lib/hmac";
 import { verifyAuditChain } from "../lib/audit";
 import type { MIOPackage } from "../../shared/mip-types";
+import { requestPhysicalAction, approvePhysicalAction, rejectPhysicalAction, ACTION_TIER_MAP, PHYSICAL_ACTION_TIERS } from "../mip/physical-action-engine";
+import { analyzeEmotionalRisk, getEmotionalRiskHistory } from "../mip/emotional-risk-engine";
+import { createDnaSnapshot, getDnaVersionHistory, rollbackDna } from "../mip/dna-rollback-engine";
+import { mipPhysicalActions, mipEmotionalRiskLogs, mipPackageVersions } from "../../drizzle/schema";
 
 // ─── Zod 스키마 ───────────────────────────────────────────────────────────────
 
@@ -504,5 +508,127 @@ export const mipRouter = router({
         .orderBy(desc(mipImplantations.startedAt))
         .limit(10);
     }),
+  }),
+
+  // ─── Physical Action Tier 0~4 승인 시스템 ────────────────────────────────
+  physicalAction: router({
+    request: protectedProcedure
+      .input(z.object({
+        actionType: z.string(),
+        deviceId: z.string().optional(),
+        sessionId: z.string().optional(),
+        actionPayload: z.record(z.string(), z.unknown()).optional(),
+        contextSnapshot: z.record(z.string(), z.unknown()).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return requestPhysicalAction({
+          userId: String(ctx.user.id),
+          ...input,
+        });
+      }),
+    approve: protectedProcedure
+      .input(z.object({
+        actionId: z.string(),
+        method: z.enum(["user_approved", "mfa_approved"]),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await approvePhysicalAction(input.actionId, String(ctx.user.id), input.method);
+        return { success: true };
+      }),
+    reject: protectedProcedure
+      .input(z.object({
+        actionId: z.string(),
+        reason: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await rejectPhysicalAction(input.actionId, String(ctx.user.id), input.reason);
+        return { success: true };
+      }),
+    list: protectedProcedure
+      .input(z.object({ limit: z.number().default(50) }))
+      .query(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        return db.select().from(mipPhysicalActions)
+          .where(eq(mipPhysicalActions.userId, String(ctx.user.id)))
+          .orderBy(desc(mipPhysicalActions.requestedAt))
+          .limit(input.limit);
+      }),
+    tierDefinitions: protectedProcedure.query(async () => {
+      return {
+        tiers: PHYSICAL_ACTION_TIERS,
+        actionMap: ACTION_TIER_MAP,
+      };
+    }),
+  }),
+
+  // ─── Emotional Dependency Risk 감지 ──────────────────────────────────────
+  emotionalRisk: router({
+    analyze: protectedProcedure
+      .input(z.object({
+        sessionId: z.string().optional(),
+        packageId: z.string().optional(),
+        emotionIntensity: z.number().min(0).max(100),
+        attachmentLevel: z.number().min(0).max(100),
+        socialIsolation: z.number().min(0).max(100),
+        realityAnchor: z.number().min(0).max(100),
+        aiDependencyFrequency: z.number().min(0).max(100),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return analyzeEmotionalRisk({
+          userId: String(ctx.user.id),
+          ...input,
+        });
+      }),
+    history: protectedProcedure
+      .input(z.object({ limit: z.number().default(20) }))
+      .query(async ({ ctx, input }) => {
+        return getEmotionalRiskHistory(String(ctx.user.id), input.limit);
+      }),
+    allLogs: protectedProcedure
+      .input(z.object({ limit: z.number().default(50) }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        return db.select().from(mipEmotionalRiskLogs)
+          .orderBy(desc(mipEmotionalRiskLogs.detectedAt))
+          .limit(input.limit);
+      }),
+  }),
+
+  // ─── DNA Rollback ─────────────────────────────────────────────────────────
+  dnaRollback: router({
+    snapshot: protectedProcedure
+      .input(z.object({
+        packageId: z.string(),
+        dnaData: z.record(z.string(), z.unknown()),
+        patternData: z.record(z.string(), z.unknown()).optional(),
+        contextData: z.record(z.string(), z.unknown()).optional(),
+        didSignature: z.string(),
+        changeReason: z.string(),
+        versionTag: z.string().optional(),
+        isRollbackPoint: z.boolean().default(false),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const snapshotId = await createDnaSnapshot({
+          ...input,
+          userId: String(ctx.user.id),
+          changedBy: String(ctx.user.id),
+        });
+        return { snapshotId, success: true };
+      }),
+    history: protectedProcedure
+      .input(z.object({ packageId: z.string() }))
+      .query(async ({ input }) => {
+        return getDnaVersionHistory(input.packageId);
+      }),
+    rollback: protectedProcedure
+      .input(z.object({
+        packageId: z.string(),
+        targetVersionId: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return rollbackDna(input.packageId, input.targetVersionId, String(ctx.user.id));
+      }),
   }),
 });

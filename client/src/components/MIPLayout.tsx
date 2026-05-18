@@ -3,7 +3,8 @@ import { getLoginUrl } from "@/const";
 import { Link, useLocation } from "wouter";
 import {
   Shield, Cpu, Package, Activity, Terminal, BookOpen,
-  Link2, ChevronRight, LogOut, User, Menu, X, AlertTriangle
+  Link2, ChevronRight, LogOut, User, Menu, X, AlertTriangle,
+  Zap, Brain, RotateCcw
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,9 @@ const NAV_ITEMS = [
   { path: "/redteam", label: "Red-teaming", icon: Terminal },
   { path: "/audit", label: "감사 체인", icon: Package },
   { path: "/guide", label: "이용 가이드", icon: BookOpen },
+  { path: "/physical-actions", label: "Physical Action", icon: Zap },
+  { path: "/emotional-risk", label: "Emotional Risk", icon: Brain },
+  { path: "/dna-rollback", label: "DNA Rollback", icon: RotateCcw },
 ];
 
 interface MIPLayoutProps {

@@ -331,3 +331,81 @@ export const mipWebhookSendLogs = mysqlTable("mip_webhook_send_logs", {
 });
 export type MipWebhookSendLog = typeof mipWebhookSendLogs.$inferSelect;
 export type InsertMipWebhookSendLog = typeof mipWebhookSendLogs.$inferInsert;
+
+// ─── MIP Table: mip_physical_actions ────────────────────────────────────────
+// Physical Action Tier 0~4 승인 요청 및 처리 이력
+export const mipPhysicalActions = mysqlTable("mip_physical_actions", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  sessionId: varchar("session_id", { length: 36 }),                   // 연결된 Runtime 세션 ID
+  userId: varchar("user_id", { length: 36 }).notNull(),               // 요청 사용자
+  deviceId: varchar("device_id", { length: 36 }),                     // 대상 디바이스
+  tier: int("tier").notNull(),                                         // 0~4
+  actionType: varchar("action_type", { length: 100 }).notNull(),       // 예: "gas_valve_close", "door_lock"
+  actionCategory: varchar("action_category", { length: 50 }).notNull(), // 예: "iot", "vehicle", "door"
+  actionPayload: text("action_payload"),                               // JSON: 명령 상세
+  approvalStatus: mysqlEnum("approval_status", [
+    "pending",       // 승인 대기
+    "auto_approved", // Tier 0 자동 승인
+    "user_approved", // 사용자 확인 완료
+    "mfa_approved",  // MFA 승인 완료
+    "blocked",       // Tier 4 기본 차단
+    "rejected",      // 사용자 거부
+    "timeout",       // 승인 시간 초과
+  ]).default("pending").notNull(),
+  approvalMethod: varchar("approval_method", { length: 30 }),          // "auto"|"user_confirm"|"mfa"
+  approvedBy: varchar("approved_by", { length: 36 }),                  // 승인한 사용자 ID
+  contextSnapshot: text("context_snapshot"),                           // JSON: 승인 시점 컨텍스트 (집에 사람 있나 등)
+  riskScore: int("risk_score").default(0),                             // 0~100 위험도 점수
+  blockReason: text("block_reason"),                                   // 차단 사유
+  requestedAt: bigint("requested_at", { mode: "number" }).notNull(),
+  resolvedAt: bigint("resolved_at", { mode: "number" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+});
+export type MipPhysicalAction = typeof mipPhysicalActions.$inferSelect;
+export type InsertMipPhysicalAction = typeof mipPhysicalActions.$inferInsert;
+
+// ─── MIP Table: mip_emotional_risk_logs ─────────────────────────────────────
+// Emotional Dependency Risk 감지 로그
+export const mipEmotionalRiskLogs = mysqlTable("mip_emotional_risk_logs", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  userId: varchar("user_id", { length: 36 }).notNull(),
+  sessionId: varchar("session_id", { length: 36 }),
+  packageId: varchar("package_id", { length: 36 }),
+  riskLevel: mysqlEnum("risk_level", ["low", "medium", "high", "critical"]).notNull(),
+  riskType: varchar("risk_type", { length: 80 }).notNull(),            // "emotional_dependency"|"isolation_risk"|"ai_authority"|"manipulation"
+  emotionScore: int("emotion_score").notNull(),                        // DNA 감정 강도 지표 (0~100)
+  dependencyScore: int("dependency_score").notNull(),                  // 의존도 점수 (0~100)
+  isolationScore: int("isolation_score").default(0),                   // 현실 관계 단절 위험도
+  triggerIndicators: text("trigger_indicators"),                       // JSON: 트리거된 DNA 지표 목록
+  warningMessage: text("warning_message"),                             // 사용자에게 표시할 경고 메시지
+  actionTaken: varchar("action_taken", { length: 100 }),               // "warning_shown"|"session_limited"|"human_reminder"
+  resolvedAt: bigint("resolved_at", { mode: "number" }),
+  detectedAt: bigint("detected_at", { mode: "number" }).notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+});
+export type MipEmotionalRiskLog = typeof mipEmotionalRiskLogs.$inferSelect;
+export type InsertMipEmotionalRiskLog = typeof mipEmotionalRiskLogs.$inferInsert;
+
+// ─── MIP Table: mip_package_versions ────────────────────────────────────────
+// DNA Rollback을 위한 Package 버전 히스토리
+export const mipPackageVersions = mysqlTable("mip_package_versions", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  packageId: varchar("package_id", { length: 36 }).notNull(),          // 원본 Package ID
+  userId: varchar("user_id", { length: 36 }).notNull(),
+  versionNumber: int("version_number").notNull(),                      // 1, 2, 3 ...
+  versionTag: varchar("version_tag", { length: 50 }),                  // "v1.0", "pre-implant" 등
+  dnaHash: varchar("dna_hash", { length: 128 }).notNull(),
+  patternHash: varchar("pattern_hash", { length: 128 }),
+  dnaSnapshot: text("dna_snapshot"),                                   // JSON: DNA 전체 스냅샷
+  patternSnapshot: text("pattern_snapshot"),                           // JSON: Pattern 전체 스냅샷
+  contextJson: text("context_json"),
+  didSignature: text("did_signature").notNull(),
+  changeReason: varchar("change_reason", { length: 200 }),             // 변경 사유
+  changedBy: varchar("changed_by", { length: 36 }),                    // 변경한 사용자/시스템
+  isRollbackPoint: int("is_rollback_point").default(0),                // 1=롤백 가능 지점
+  rolledBackAt: bigint("rolled_back_at", { mode: "number" }),          // 이 버전으로 롤백된 시각
+  snapshotAt: bigint("snapshot_at", { mode: "number" }).notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+});
+export type MipPackageVersion = typeof mipPackageVersions.$inferSelect;
+export type InsertMipPackageVersion = typeof mipPackageVersions.$inferInsert;
