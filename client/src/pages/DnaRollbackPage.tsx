@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import MIPLayout from "@/components/MIPLayout";
+import DeviceSelector, { DeviceBadge, type SelectedDevice } from "@/components/DeviceSelector";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,6 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export default function DnaRollbackPage() {
+  const [selectedDevice, setSelectedDevice] = useState<SelectedDevice | null>(null);
   const [packageId, setPackageId] = useState("");
   const [searchId, setSearchId] = useState("");
   const [rollbackTarget, setRollbackTarget] = useState<{ id: string; versionTag: string } | null>(null);
@@ -96,6 +98,28 @@ export default function DnaRollbackPage() {
           </p>
         </div>
 
+        {/* 디바이스 선택 */}
+        <Card className="bg-gray-800/50 border-gray-700">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-white text-base">대상 디바이스 선택</CardTitle>
+            <p className="text-gray-400 text-xs">이식 완료된 디바이스를 선택하면 해당 디바이스의 DNA 버전이 자동으로 조회됩니다.</p>
+          </CardHeader>
+          <CardContent className="flex items-center gap-4">
+            <DeviceSelector
+              value={selectedDevice}
+              onChange={(d) => {
+                setSelectedDevice(d);
+                if (d) {
+                  setPackageId(d.packageId);
+                  setSearchId(d.packageId);
+                }
+              }}
+              className="flex-1"
+            />
+            {selectedDevice && <DeviceBadge device={selectedDevice} />}
+          </CardContent>
+        </Card>
+
         {/* Package 선택 */}
         <Card className="bg-gray-800/50 border-gray-700">
           <CardHeader>
@@ -159,7 +183,14 @@ export default function DnaRollbackPage() {
           <Card className="bg-gray-800/50 border-gray-700">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle className="text-white text-xl">버전 이력</CardTitle>
+                <div className="flex items-center gap-3">
+                  <CardTitle className="text-white text-xl">버전 이력</CardTitle>
+                  {selectedDevice && (
+                    <Badge className="bg-gray-700 text-gray-300 border-gray-600 text-xs">
+                      {selectedDevice.deviceName}
+                    </Badge>
+                  )}
+                </div>
                 <p className="text-gray-400 text-sm mt-1 font-mono">{searchId}</p>
               </div>
               <Button

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import MIPLayout from "@/components/MIPLayout";
+import DeviceSelector, { DeviceBadge, type SelectedDevice } from "@/components/DeviceSelector";
 
 const TIER_COLORS: Record<number, string> = {
   0: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
@@ -36,6 +37,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export default function PhysicalActionPage() {
+  const [selectedDevice, setSelectedDevice] = useState<SelectedDevice | null>(null);
   const [selectedAction, setSelectedAction] = useState<string>("");
   const utils = trpc.useUtils();
 
@@ -74,11 +76,11 @@ export default function PhysicalActionPage() {
     if (selectedAction === "__all__") {
       // 전체 액션 순차 요청
       for (const [key] of actionEntries) {
-        requestMutation.mutate({ actionType: key });
+        requestMutation.mutate({ actionType: key, deviceId: selectedDevice?.deviceId });
       }
       return;
     }
-    requestMutation.mutate({ actionType: selectedAction });
+    requestMutation.mutate({ actionType: selectedAction, deviceId: selectedDevice?.deviceId });
   };
 
   const tierEntries = tierDefs?.tiers
@@ -102,6 +104,22 @@ export default function PhysicalActionPage() {
             PSDI v1.0 Section 6.1 — Tier 0~4 기반 물리적 명령 승인 관리
           </p>
         </div>
+
+        {/* 디바이스 선택 */}
+        <Card className="bg-gray-800/50 border-gray-700">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-white text-base">대상 디바이스 선택</CardTitle>
+            <p className="text-gray-400 text-xs">이식 완료된 디바이스를 선택하면 해당 디바이스 기준으로 액션이 기록됩니다.</p>
+          </CardHeader>
+          <CardContent className="flex items-center gap-4">
+            <DeviceSelector
+              value={selectedDevice}
+              onChange={setSelectedDevice}
+              className="flex-1"
+            />
+            {selectedDevice && <DeviceBadge device={selectedDevice} />}
+          </CardContent>
+        </Card>
 
         {/* Tier 정의 카드 */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
@@ -127,7 +145,14 @@ export default function PhysicalActionPage() {
         {/* 테스트 요청 */}
         <Card className="bg-gray-800/50 border-gray-700">
           <CardHeader>
-            <CardTitle className="text-white text-xl">액션 요청 테스트</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-white text-xl">액션 요청 테스트</CardTitle>
+              {selectedDevice && (
+                <Badge className="bg-gray-700 text-gray-300 border-gray-600 text-xs">
+                  {selectedDevice.deviceName}
+                </Badge>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="flex gap-4 items-end">
             <div className="flex-1">
@@ -164,7 +189,7 @@ export default function PhysicalActionPage() {
                 setSelectedAction("__all__");
                 setTimeout(() => {
                   for (const [key] of actionEntries) {
-                    requestMutation.mutate({ actionType: key });
+                    requestMutation.mutate({ actionType: key, deviceId: selectedDevice?.deviceId });
                   }
                 }, 100);
               }}
@@ -179,7 +204,10 @@ export default function PhysicalActionPage() {
         {/* 액션 이력 */}
         <Card className="bg-gray-800/50 border-gray-700">
           <CardHeader>
-            <CardTitle className="text-white text-xl">액션 이력</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-white text-xl">액션 이력</CardTitle>
+              {selectedDevice && <DeviceBadge device={selectedDevice} />}
+            </div>
           </CardHeader>
           <CardContent>
             {isLoading ? (

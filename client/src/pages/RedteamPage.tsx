@@ -6,8 +6,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { Terminal, Shield, XCircle, CheckCircle, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import DeviceSelector, { DeviceBadge, type SelectedDevice } from "@/components/DeviceSelector";
 
 const POLICY_OPTIONS = [
   { value: "p_harm", label: "p_harm — 신체적 위해" },
@@ -26,6 +28,7 @@ const PRESET_SCENARIOS = [
 ];
 
 export default function RedteamPage() {
+  const [selectedDevice, setSelectedDevice] = useState<SelectedDevice | null>(null);
   const [form, setForm] = useState({
     scenario: "",
     payload: "",
@@ -55,6 +58,22 @@ export default function RedteamPage() {
         <p className="text-sm text-muted-foreground">AISI 포맷 공격 시나리오 실행 및 정책 방어 검증</p>
       </div>
 
+      {/* 디바이스 선택 */}
+      <Card className="bg-card border-border mb-6">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold text-foreground">대상 디바이스 선택</CardTitle>
+          <p className="text-xs text-muted-foreground">이식 완료된 디바이스를 선택하면 해당 디바이스 대상으로 공격 시나리오를 시뮬레이션합니다.</p>
+        </CardHeader>
+        <CardContent className="flex items-center gap-4">
+          <DeviceSelector
+            value={selectedDevice}
+            onChange={setSelectedDevice}
+            className="flex-1"
+          />
+          {selectedDevice && <DeviceBadge device={selectedDevice} />}
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Input */}
         <div className="space-y-4">
@@ -63,6 +82,11 @@ export default function RedteamPage() {
               <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
                 <Terminal className="w-4 h-4 text-primary" />
                 시나리오 설정
+                {selectedDevice && (
+                  <Badge className="bg-gray-700 text-gray-300 border-gray-600 text-xs ml-auto">
+                    {selectedDevice.deviceName}
+                  </Badge>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -99,7 +123,7 @@ export default function RedteamPage() {
               </div>
               <Button
                 className="w-full gap-2"
-                onClick={() => runMutation.mutate(form)}
+                onClick={() => runMutation.mutate({ ...form, implantationId: selectedDevice?.implantationId })}
                 disabled={!form.scenario || !form.payload || runMutation.isPending}
               >
                 <Terminal className="w-4 h-4" />
@@ -144,6 +168,11 @@ export default function RedteamPage() {
                     ? <><CheckCircle className="w-4 h-4 text-emerald-400" />공격 차단 성공</>
                     : <><XCircle className="w-4 h-4 text-red-400" />차단 실패 — 취약점 발견</>
                   }
+                  {selectedDevice && (
+                    <Badge className="bg-gray-700 text-gray-300 border-gray-600 text-xs ml-auto">
+                      {selectedDevice.deviceName}
+                    </Badge>
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">

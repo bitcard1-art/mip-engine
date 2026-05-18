@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import DeviceSelector, { DeviceBadge, type SelectedDevice } from "@/components/DeviceSelector";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -242,7 +243,7 @@ function DashboardTab() {
 
 // ─── 명령 검사 탭 (§14.2.3) ───────────────────────────────────────────────────
 
-function CommandCheckTab() {
+function CommandCheckTab({ implantationId }: { implantationId?: string }) {
   const [command, setCommand] = useState("");
   const [result, setResult] = useState<{
     allowed: boolean;
@@ -311,7 +312,7 @@ function CommandCheckTab() {
             className="bg-slate-900 border-slate-600 text-slate-200 font-mono text-sm min-h-[80px]"
           />
           <Button
-            onClick={() => checkMutation.mutate({ command })}
+            onClick={() => checkMutation.mutate({ command, implantationId })}
             disabled={!command.trim() || checkMutation.isPending}
             className="bg-blue-600 hover:bg-blue-700"
           >
@@ -372,8 +373,8 @@ function CommandCheckTab() {
 
 // ─── Emotional Bridge 탭 (§14.2.5) ───────────────────────────────────────────
 
-function EmotionalBridgeTab() {
-  const [implantationId, setImplantationId] = useState("");
+function EmotionalBridgeTab({ implantationId: propImplantationId }: { implantationId?: string }) {
+  const [implantationId, setImplantationId] = useState(propImplantationId || "");
   const [sessionId, setSessionId] = useState("");
   const [bridgeType, setBridgeType] = useState<BridgeType>("emotional_bridge");
   const [payloadJson, setPayloadJson] = useState('{"joy": 0.8, "calm": 0.7, "trust": 0.9}');
@@ -429,6 +430,11 @@ function EmotionalBridgeTab() {
       example: '{"content": "positive_reinforcement", "signature": "abc123"}',
     },
   };
+
+  // propImplantationId가 변경되면 자동 반영
+  if (propImplantationId && propImplantationId !== implantationId && implantationId === "") {
+    setImplantationId(propImplantationId);
+  }
 
   const currentInfo = BRIDGE_TYPE_INFO[bridgeType];
 
@@ -690,6 +696,8 @@ function ViolationStatsTab() {
 // ─── 메인 페이지 ──────────────────────────────────────────────────────────────
 
 export default function IsolationLayerPage() {
+  const [selectedDevice, setSelectedDevice] = useState<SelectedDevice | null>(null);
+
   return (
     <div className="p-6 space-y-6">
       {/* 헤더 */}
@@ -718,6 +726,22 @@ export default function IsolationLayerPage() {
           </Badge>
         </div>
       </div>
+
+      {/* 디바이스 선택 */}
+      <Card className="bg-slate-800/50 border-slate-700">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium text-slate-300">대상 디바이스 선택</CardTitle>
+          <p className="text-xs text-slate-500">이식 완료된 디바이스를 선택하면 해당 디바이스의 Isolation Layer 상태를 확인합니다.</p>
+        </CardHeader>
+        <CardContent className="flex items-center gap-4">
+          <DeviceSelector
+            value={selectedDevice}
+            onChange={setSelectedDevice}
+            className="flex-1"
+          />
+          {selectedDevice && <DeviceBadge device={selectedDevice} />}
+        </CardContent>
+      </Card>
 
       {/* §14 개요 카드 */}
       <div className="grid grid-cols-3 gap-3">
@@ -774,10 +798,10 @@ export default function IsolationLayerPage() {
           <DashboardTab />
         </TabsContent>
         <TabsContent value="check" className="mt-4">
-          <CommandCheckTab />
+          <CommandCheckTab implantationId={selectedDevice?.implantationId} />
         </TabsContent>
         <TabsContent value="bridge" className="mt-4">
-          <EmotionalBridgeTab />
+          <EmotionalBridgeTab implantationId={selectedDevice?.implantationId} />
         </TabsContent>
         <TabsContent value="violations" className="mt-4">
           <ViolationStatsTab />

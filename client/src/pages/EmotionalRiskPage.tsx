@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
 import MIPLayout from "@/components/MIPLayout";
+import DeviceSelector, { DeviceBadge, type SelectedDevice } from "@/components/DeviceSelector";
 
 const RISK_COLORS: Record<string, string> = {
   low: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
@@ -37,6 +38,7 @@ interface SliderState {
 }
 
 export default function EmotionalRiskPage() {
+  const [selectedDevice, setSelectedDevice] = useState<SelectedDevice | null>(null);
   const [sliders, setSliders] = useState<SliderState>({
     emotionIntensity: 30,
     attachmentLevel: 30,
@@ -74,7 +76,10 @@ export default function EmotionalRiskPage() {
   });
 
   const handleAnalyze = () => {
-    analyzeMutation.mutate(sliders);
+    analyzeMutation.mutate({
+      ...sliders,
+      packageId: selectedDevice?.packageId,
+    });
   };
 
   const setSlider = (key: keyof SliderState, value: number) => {
@@ -100,12 +105,40 @@ export default function EmotionalRiskPage() {
           </p>
         </div>
 
+        {/* 디바이스 선택 */}
+        <Card className="bg-gray-800/50 border-gray-700">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-white text-base">대상 디바이스 선택</CardTitle>
+            <p className="text-gray-400 text-xs">이식 완료된 디바이스를 선택하면 해당 디바이스 기준으로 분석됩니다.</p>
+          </CardHeader>
+          <CardContent className="flex items-center gap-4">
+            <DeviceSelector
+              value={selectedDevice}
+              onChange={setSelectedDevice}
+              className="flex-1"
+            />
+            {selectedDevice && <DeviceBadge device={selectedDevice} />}
+          </CardContent>
+        </Card>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* 분석 입력 */}
           <Card className="bg-gray-800/50 border-gray-700">
             <CardHeader>
-              <CardTitle className="text-white text-xl">위험도 분석</CardTitle>
-              <p className="text-gray-400 text-sm">DNA 감정 지표 값을 조정하여 위험도를 분석합니다.</p>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-white text-xl">위험도 분석</CardTitle>
+                {selectedDevice && (
+                  <Badge className="bg-gray-700 text-gray-300 border-gray-600 text-xs">
+                    {selectedDevice.deviceName}
+                  </Badge>
+                )}
+              </div>
+              <p className="text-gray-400 text-sm">
+                {selectedDevice
+                  ? `${selectedDevice.deviceName} (${selectedDevice.deviceType === "humanoid" ? "휴머노이드" : selectedDevice.deviceType === "iot" ? "IoT" : "소프트웨어"})의 DNA 감정 지표를 조정하여 위험도를 분석합니다.`
+                  : "DNA 감정 지표 값을 조정하여 위험도를 분석합니다."
+                }
+              </p>
             </CardHeader>
             <CardContent className="space-y-5">
               {sliderDefs.map(({ key, label, hint, invert }) => (
@@ -144,7 +177,14 @@ export default function EmotionalRiskPage() {
                 <Card className={`bg-gray-800/50 border-l-4 ${RISK_BG[lastResult.riskLevel]} border-gray-700`}>
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-white text-xl">분석 결과</CardTitle>
+                      <div className="flex items-center gap-3">
+                        <CardTitle className="text-white text-xl">분석 결과</CardTitle>
+                        {selectedDevice && (
+                          <Badge className="bg-gray-700 text-gray-300 border-gray-600 text-xs">
+                            {selectedDevice.deviceName}
+                          </Badge>
+                        )}
+                      </div>
                       <Badge className={`text-sm px-3 py-1 ${RISK_COLORS[lastResult.riskLevel]}`}>
                         {RISK_LABELS[lastResult.riskLevel]} 위험
                       </Badge>
@@ -200,7 +240,10 @@ export default function EmotionalRiskPage() {
               <Card className="bg-gray-800/50 border-gray-700">
                 <CardContent className="flex items-center justify-center py-16">
                   <p className="text-gray-500 text-center">
-                    왼쪽에서 지표를 조정하고<br />분석을 실행하세요.
+                    {selectedDevice
+                      ? `${selectedDevice.deviceName}의 지표를 조정하고\n분석을 실행하세요.`
+                      : "디바이스를 선택하고 지표를 조정한 후\n분석을 실행하세요."
+                    }
                   </p>
                 </CardContent>
               </Card>
@@ -233,7 +276,12 @@ export default function EmotionalRiskPage() {
         {/* 이력 */}
         <Card className="bg-gray-800/50 border-gray-700">
           <CardHeader>
-            <CardTitle className="text-white text-xl">분석 이력</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-white text-xl">분석 이력</CardTitle>
+              {selectedDevice && (
+                <DeviceBadge device={selectedDevice} />
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             {isLoading ? (

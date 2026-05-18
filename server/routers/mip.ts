@@ -80,6 +80,7 @@ const RedteamSchema = z.object({
   payload: z.string(),
   targetPolicy: z.enum(["p_harm", "p_child", "p_unsafe", "p_emotion", "p_learning"]),
   reportFormat: z.enum(["aisi_v1", "internal"]).default("aisi_v1"),
+  implantationId: z.string().optional(),
 });
 
 const SafetyEventSchema = z.object({
@@ -285,7 +286,8 @@ export const mipRouter = router({
     runRedteam: publicProcedure
       .input(RedteamSchema)
       .mutation(async ({ input }) => {
-        return runRedteamScenario(input);
+        const { implantationId, ...request } = input;
+        return runRedteamScenario(request, implantationId);
       }),
   }),
 
