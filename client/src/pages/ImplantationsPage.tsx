@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 // Input removed - using Select for packageId
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+// Dialog removed — using inline panel to avoid Portal removeChild errors
 import { CheckCircle, XCircle, Clock, Loader2, Plus, RefreshCw, ShieldCheck, Shield, Link2, Brain, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { IMPLANTATION_STAGES } from "../../../shared/mip-types";
@@ -244,12 +244,9 @@ export default function ImplantationsPage() {
     onSuccess: (data) => {
       toast.success("이식 프로세스 시작됨");
       setSelectedId(data.implantationId);
-      // Dialog 닫기를 다음 프레임으로 지연하여 Select Portal DOM 충돌 방지
-      requestAnimationFrame(() => {
-        setOpen(false);
-        setForm({ deviceId: "", packageId: "", protocol: "websocket" });
-        utils.mip.implant.list.invalidate();
-      });
+      setOpen(false);
+      setForm({ deviceId: "", packageId: "", protocol: "websocket" });
+      utils.mip.implant.list.invalidate();
     },
     onError: (e) => toast.error(`시작 실패: ${e.message}`),
   });
@@ -273,78 +270,79 @@ export default function ImplantationsPage() {
           <h2 className="text-lg font-semibold text-foreground">이식 이력</h2>
           <p className="text-sm text-muted-foreground">8단계 MIO Implantation Protocol 상태 관리</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" className="gap-2"><Plus className="w-4 h-4" />이식 시작</Button>
-          </DialogTrigger>
-          <DialogContent className="bg-card border-border">
-            <DialogHeader>
-              <DialogTitle className="text-foreground">새 이식 프로세스 시작</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 pt-2">
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">디바이스 선택</label>
-                <Select value={form.deviceId} onValueChange={(v) => setForm({ ...form, deviceId: v })}>
-                  <SelectTrigger className="bg-input border-border text-foreground">
-                    <SelectValue placeholder="디바이스 선택..." />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border" container={null}>
-                    {devices?.map((d) => (
-                      <SelectItem key={d.id} value={d.id}>{d.deviceName} ({d.deviceType})</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">MIO Package 선택</label>
-                <Select value={form.packageId} onValueChange={(v) => setForm({ ...form, packageId: v })} disabled={packagesLoading}>
-                  <SelectTrigger className="bg-input border-border text-foreground">
-                    <SelectValue placeholder={packagesLoading ? "패키지 로딩 중..." : "패키지 선택..."} />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border" container={null}>
-                    {packages && packages.length > 0 ? (
-                      packages.map((pkg) => {
-                        let pkgName = pkg.id;
-                        try {
-                          const ctx = pkg.contextJson ? JSON.parse(pkg.contextJson) : null;
-                          if (ctx?.name) pkgName = ctx.name;
-                        } catch {}
-                        return (
-                          <SelectItem key={pkg.id} value={pkg.id}>
-                            {pkgName}
-                          </SelectItem>
-                        );
-                      })
-                    ) : (
-                      <SelectItem value="__none__" disabled>등록된 패키지가 없습니다</SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">연결 프로토콜</label>
-                <Select value={form.protocol} onValueChange={(v) => setForm({ ...form, protocol: v as any })}>
-                  <SelectTrigger className="bg-input border-border text-foreground">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border" container={null}>
-                    <SelectItem value="ros2">ROS2 (휴머노이드)</SelectItem>
-                    <SelectItem value="mqtt">MQTT (IoT)</SelectItem>
-                    <SelectItem value="websocket">WebSocket (소프트웨어)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button
-                className="w-full"
-                onClick={() => startMutation.mutate(form)}
-                disabled={!form.deviceId || !form.packageId || startMutation.isPending}
-              >
-                {startMutation.isPending ? "시작 중..." : "이식 시작"}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <Button size="sm" className="gap-2" onClick={() => setOpen(!open)}>
+          <Plus className="w-4 h-4" />{open ? "닫기" : "이식 시작"}
+        </Button>
       </div>
+
+      {open && (
+        <Card className="bg-card border-border mb-6">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm text-foreground">새 이식 프로세스 시작</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">디바이스 선택</label>
+              <Select value={form.deviceId} onValueChange={(v) => setForm({ ...form, deviceId: v })}>
+                <SelectTrigger className="bg-input border-border text-foreground">
+                  <SelectValue placeholder="디바이스 선택..." />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border">
+                  {devices?.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>{d.deviceName} ({d.deviceType})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">MIO Package 선택</label>
+              <Select value={form.packageId} onValueChange={(v) => setForm({ ...form, packageId: v })} disabled={packagesLoading}>
+                <SelectTrigger className="bg-input border-border text-foreground">
+                  <SelectValue placeholder={packagesLoading ? "패키지 로딩 중..." : "패키지 선택..."} />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border">
+                  {packages && packages.length > 0 ? (
+                    packages.map((pkg) => {
+                      let pkgName = pkg.id;
+                      try {
+                        const ctx = pkg.contextJson ? JSON.parse(pkg.contextJson) : null;
+                        if (ctx?.name) pkgName = ctx.name;
+                      } catch {}
+                      return (
+                        <SelectItem key={pkg.id} value={pkg.id}>
+                          {pkgName}
+                        </SelectItem>
+                      );
+                    })
+                  ) : (
+                    <SelectItem value="__none__" disabled>등록된 패키지가 없습니다</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">연결 프로토콜</label>
+              <Select value={form.protocol} onValueChange={(v) => setForm({ ...form, protocol: v as any })}>
+                <SelectTrigger className="bg-input border-border text-foreground">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border">
+                  <SelectItem value="ros2">ROS2 (휴머노이드)</SelectItem>
+                  <SelectItem value="mqtt">MQTT (IoT)</SelectItem>
+                  <SelectItem value="websocket">WebSocket (소프트웨어)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              className="w-full"
+              onClick={() => startMutation.mutate(form)}
+              disabled={!form.deviceId || !form.packageId || startMutation.isPending}
+            >
+              {startMutation.isPending ? "시작 중..." : "이식 시작"}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* List */}

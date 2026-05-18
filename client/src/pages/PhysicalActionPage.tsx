@@ -66,9 +66,16 @@ export default function PhysicalActionPage() {
     onError: (err) => toast.error(err.message),
   });
 
-  const handleRequest = () => {
+  const handleRequest = async () => {
     if (!selectedAction) {
       toast.error("액션 타입을 선택하세요.");
+      return;
+    }
+    if (selectedAction === "__all__") {
+      // 전체 액션 순차 요청
+      for (const [key] of actionEntries) {
+        requestMutation.mutate({ actionType: key });
+      }
       return;
     }
     requestMutation.mutate({ actionType: selectedAction });
@@ -130,6 +137,10 @@ export default function PhysicalActionPage() {
                   <SelectValue placeholder="액션을 선택하세요" />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-700">
+                  <SelectItem value="__all__" className="text-white hover:bg-gray-700 border-b border-gray-700 mb-1">
+                    <span className="font-bold text-sm text-cyan-300">★ 전체 액션 요청</span>
+                    <span className="ml-2 text-gray-400 text-xs">(모든 타입 순차 실행)</span>
+                  </SelectItem>
                   {actionEntries.map(([key, val]) => (
                     <SelectItem key={key} value={key} className="text-white hover:bg-gray-700">
                       <span className="font-mono text-sm">{key}</span>

@@ -163,3 +163,11 @@
 ## Phase 19: Sandbox AND 게이트 여전히 실패 — 근본 수정
 
 - [x] Sandbox 5항목 AND 게이트 검증에서 IoT 디바이스가 확실히 통과하도록 수정 (emotionalRange 0.7→0.95)
+
+## Phase 20: removeChild 완전 제거 — Dialog를 인라인 패널로 교체
+
+- [x] 이식 시작 모달을 Dialog에서 조건부 인라인 Card 패널로 변경하여 Portal 충돌 완전 제거
+
+## Phase 20.5: 액션 타입 전체 선택 옵션
+
+- [x] 액션 요청 테스트 페이지에서 '전체 액션 요청' 옵션 추가 (모든 타입 순차 실행)
