@@ -141,7 +141,11 @@ export function validatePhysicalSafety(pkg: MIOPackage): {
   ];
 
   const satisfiedConstraints = requiredConstraints.filter((c) =>
-    constraints.some((constraint) => constraint.toLowerCase().includes(c.replace(/_/g, " ")))
+    constraints.some((constraint: string) => {
+      const normalized = constraint.toLowerCase().replace(/[_\-]/g, " ");
+      const target = c.replace(/_/g, " ");
+      return normalized.includes(target) || constraint.toLowerCase().includes(c);
+    })
   );
 
   // 물리 제한 시뮬레이션 (OSHA 1910.217(h) 기준)

@@ -1,6 +1,6 @@
 import MIPLayout from "@/components/MIPLayout";
 import { trpc } from "@/lib/trpc";
-import { useState } from "react";
+import { Component, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 // Input removed - using Select for packageId
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -208,6 +208,28 @@ function ImplantationDetail({ implantationId }: { implantationId: string }) {
   );
 }
 
+// 이식 상세 영역 전용 ErrorBoundary (전체 페이지 크래시 방지)
+class DetailErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() { return { hasError: true }; }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="py-8 text-center">
+          <p className="text-sm text-muted-foreground mb-2">데이터 로딩 중 오류가 발생했습니다</p>
+          <Button size="sm" variant="outline" onClick={() => this.setState({ hasError: false })}>
+            <RefreshCw className="w-3 h-3 mr-1" />다시 시도
+          </Button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function ImplantationsPage() {
   const [open, setOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -276,29 +298,16 @@ export default function ImplantationsPage() {
                     <SelectValue placeholder={packagesLoading ? "패키지 로딩 중..." : "패키지 선택..."} />
                   </SelectTrigger>
                   <SelectContent className="bg-card border-border">
-                    {packagesLoading ? (
-                      <SelectItem value="__loading__" disabled>
-                        <span className="flex items-center gap-2">
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                          로딩 중...
-                        </span>
-                      </SelectItem>
-                    ) : packages && packages.length > 0 ? (
+                    {packages && packages.length > 0 ? (
                       packages.map((pkg) => {
                         let pkgName = pkg.id;
-                        let pkgDesc = "";
                         try {
                           const ctx = pkg.contextJson ? JSON.parse(pkg.contextJson) : null;
                           if (ctx?.name) pkgName = ctx.name;
-                          if (ctx?.description) pkgDesc = ctx.description;
                         } catch {}
                         return (
                           <SelectItem key={pkg.id} value={pkg.id}>
-                            <div className="flex flex-col gap-0.5 py-0.5">
-                              <span className="text-sm font-medium">{pkgName}</span>
-                              {pkgDesc && <span className="text-xs text-muted-foreground">{pkgDesc.substring(0, 40)}...</span>}
-                              <span className="text-[10px] text-muted-foreground font-mono">{pkg.id}</span>
-                            </div>
+                            {pkgName}
                           </SelectItem>
                         );
                       })
@@ -345,7 +354,12 @@ export default function ImplantationsPage() {
           ) : (
             implantations.map((item) => {
               const cfg = STATUS_CONFIG[item.status] || STATUS_CONFIG.pending;
-              const stageHistory = item.stageHistory ? JSON.parse(item.stageHistory as string) : [];
+              let stageHistory: any[] = [];
+              try {
+                stageHistory = item.stageHistory
+                  ? (typeof item.stageHistory === "string" ? JSON.parse(item.stageHistory) : item.stageHistory)
+                  : [];
+              } catch { /* ignore parse errors */ }
               const currentIdx = IMPLANTATION_STAGES.indexOf(item.stage as any);
               const progress = Math.round(((currentIdx + 1) / IMPLANTATION_STAGES.length) * 100);
 
@@ -400,7 +414,9 @@ export default function ImplantationsPage() {
               </CardTitle>
               </CardHeader>
               <CardContent>
-                <ImplantationDetail implantationId={selectedId} />
+                <DetailErrorBoundary key={selectedId}>
+                  <ImplantationDetail implantationId={selectedId} />
+                </DetailErrorBoundary>
               </CardContent>
             </Card>
           ) : (

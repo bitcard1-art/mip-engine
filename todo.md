@@ -144,3 +144,8 @@
 ## Phase 15: 신뢰 검증 실패 수정
 
 - [x] verifyDeviceTrust에서 system/hangyeol-service 소유 디바이스는 모든 인증된 사용자가 사용 가능하도록 수정
+
+## Phase 16: Sandbox 검증 실패 수정 + removeChild 오류 방지
+
+- [x] Sandbox 검증 단계(Stage 7) 실패 원인 분석 및 수정
+- [x] removeChild DOM 오류 방지 (이식 목록 리렌더링 안정화)
