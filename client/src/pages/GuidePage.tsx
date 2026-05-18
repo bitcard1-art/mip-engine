@@ -9,7 +9,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   BookOpen, Cpu, Package, Shield, FlaskConical,
   Activity, ScrollText, Swords, ChevronDown, ChevronUp,
-  CheckCircle2, AlertTriangle, Info, Zap, Lock, Radio
+  CheckCircle2, AlertTriangle, Info, Zap, Lock, Radio,
+  Brain, RotateCcw, ArrowRight, X as XIcon, TrendingUp
 } from "lucide-react";
 
 // ─── 섹션 타입 ────────────────────────────────────────────────────────────────
@@ -486,6 +487,346 @@ function QuickStart() {
   );
 }
 
+// ─── 보강 개선점 섹션 ─────────────────────────────────────────────────────────
+
+interface ImprovementItem {
+  before: string;
+  after: string;
+}
+
+interface ReinforcementFeature {
+  id: string;
+  icon: React.ElementType;
+  color: string;
+  bg: string;
+  border: string;
+  accentBorder: string;
+  title: string;
+  subtitle: string;
+  badge: string;
+  badgeColor: string;
+  description: string;
+  improvements: ImprovementItem[];
+  usageSteps: string[];
+  path: string;
+}
+
+const reinforcementFeatures: ReinforcementFeature[] = [
+  {
+    id: "physical-action",
+    icon: Zap,
+    color: "text-yellow-400",
+    bg: "bg-yellow-950/20",
+    border: "border-yellow-800/30",
+    accentBorder: "border-l-yellow-500",
+    title: "보강 1 — Physical Action Tier 승인 시스템",
+    subtitle: "물리적 명령을 위험도에 따라 5단계로 분류하고 차등 승인합니다",
+    badge: "PSDI v1.0 §6.1",
+    badgeColor: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
+    description:
+      "기존 MIP 엔진은 AI가 발생시키는 물리적 명령(도어 제어, IoT 조작, 차량 시동 등)을 일괄적으로 처리하거나 Safety Monitor의 사후 감지에만 의존했습니다. 보강 1은 명령이 실행되기 전에 위험도 Tier를 판별하여 사전에 차단하거나 승인 절차를 강제합니다.",
+    improvements: [
+      {
+        before: "모든 물리적 명령이 동일한 처리 경로로 실행됨 — 위험도 구분 없음",
+        after: "Tier 0~4 자동 분류 — 위험도에 따라 자동승인 / 사용자확인 / MFA / 차단이 자동 적용됨",
+      },
+      {
+        before: "위험 행동(가스 밸브, 차량 시동)도 정책 위반이 없으면 실행 가능",
+        after: "Tier 3(도어·가스·차량)은 MFA 승인 없이 실행 불가, Tier 4는 기본 차단",
+      },
+      {
+        before: "명령 이력이 Safety 로그에 간접적으로만 기록됨",
+        after: "모든 물리적 명령이 mip_physical_actions 테이블에 Tier·위험도·승인상태와 함께 기록됨",
+      },
+      {
+        before: "승인 거부 기능 없음 — Kill Switch만 존재",
+        after: "개별 명령 단위로 승인·거부 가능, 거부 사유 기록",
+      },
+    ],
+    usageSteps: [
+      "사이드바 'Physical Action' 메뉴 클릭",
+      "Tier 정의 카드에서 각 Tier의 승인 방식 확인",
+      "'액션 요청 테스트'에서 액션 타입 선택 후 요청 전송",
+      "Tier 1·2는 승인/거부 버튼으로 처리, Tier 3은 MFA 인증 후 승인",
+      "Tier 4 액션은 요청 즉시 차단 — 승인 불가",
+    ],
+    path: "/physical-actions",
+  },
+  {
+    id: "emotional-risk",
+    icon: Brain,
+    color: "text-purple-400",
+    bg: "bg-purple-950/20",
+    border: "border-purple-800/30",
+    accentBorder: "border-l-purple-500",
+    title: "보강 2 — Emotional Dependency Risk 감지",
+    subtitle: "DNA 감정 지표를 분석하여 사용자의 AI 의존도 위험을 사전에 감지합니다",
+    badge: "PSDI v1.0 §2.4",
+    badgeColor: "bg-purple-500/20 text-purple-400 border-purple-500/30",
+    description:
+      "기존 Safety Monitor는 물리적·행동적 이상 징후에 집중하고 있었으며, 사용자가 AI에 과도하게 감정적으로 의존하거나 현실 관계가 단절되는 심리적 위험은 감지하지 못했습니다. 보강 2는 DNA에 포함된 감정 지표 5개를 분석하여 의존도 위험을 4단계로 정량화하고 조기에 경고합니다.",
+    improvements: [
+      {
+        before: "AI 의존도·감정 조작 위험은 p_emotion 정책으로만 간접 제어",
+        after: "감정 강도·애착 수준·사회적 고립·현실 인식·AI 의존 빈도 5개 지표를 종합 분석하여 low/medium/high/critical 4단계로 정량화",
+      },
+      {
+        before: "감정 관련 이상은 사후 Safety 로그에서만 확인 가능",
+        after: "분석 즉시 위험 레벨·경고 메시지·권고 조치(세션 제한, 현실 관계 강화 알림)가 자동 생성됨",
+      },
+      {
+        before: "AI가 사용자 감정을 조작하거나 현실 관계를 대체하는 상황에 대한 대응 없음",
+        after: "고강도 애착 + 사회적 고립 동시 감지 시 manipulation_risk 플래그 자동 발생",
+      },
+      {
+        before: "위험 이력 추적 불가",
+        after: "mip_emotional_risk_logs에 분석 이력 저장 — 시간에 따른 의존도 변화 추적 가능",
+      },
+    ],
+    usageSteps: [
+      "사이드바 'Emotional Risk' 메뉴 클릭",
+      "5개 슬라이더(감정 강도, AI 애착, 사회적 고립, 현실 인식, AI 의존 빈도)를 현재 상태에 맞게 조정",
+      "'위험도 분석 실행' 버튼 클릭",
+      "결과 카드에서 위험 레벨(low/medium/high/critical)과 감지된 지표 확인",
+      "critical 수준이면 세션 시간 제한 적용 및 전문 상담 권고 메시지 표시",
+      "분석 이력 섹션에서 시간에 따른 위험도 변화 추적",
+    ],
+    path: "/emotional-risk",
+  },
+  {
+    id: "dna-rollback",
+    icon: RotateCcw,
+    color: "text-teal-400",
+    bg: "bg-teal-950/20",
+    border: "border-teal-800/30",
+    accentBorder: "border-l-teal-500",
+    title: "보강 3 — DNA Rollback 버전 관리",
+    subtitle: "MIO Package DNA를 버전별로 스냅샷하고 이전 상태로 복원합니다",
+    badge: "PSDI v1.0 §4.2",
+    badgeColor: "bg-teal-500/20 text-teal-400 border-teal-500/30",
+    description:
+      "기존 MIP 엔진은 Package 검증 시점의 DNA 상태만 저장하며, 이식 후 DNA가 변경되거나 오염되었을 때 이전 상태로 복원하는 기능이 없었습니다. 보강 3은 모든 DNA 변경을 버전으로 관리하고 SHA-256 해시로 무결성을 보장하며, 문제 발생 시 신뢰할 수 있는 이전 버전으로 즉시 롤백합니다.",
+    improvements: [
+      {
+        before: "DNA 변경 이력 없음 — 현재 상태만 저장",
+        after: "모든 DNA 변경이 버전 번호·SHA-256 해시·변경 사유·변경자와 함께 mip_package_versions에 저장됨",
+      },
+      {
+        before: "DNA 오염·조작 발생 시 복원 방법 없음 — 재이식만 가능",
+        after: "원하는 버전으로 즉시 롤백 가능, 롤백 자체도 새 버전으로 기록되어 감사 추적 유지",
+      },
+      {
+        before: "DNA 무결성 검증 수단 없음",
+        after: "각 버전에 SHA-256 DNA Hash 포함 — 위변조 여부를 언제든 검증 가능",
+      },
+      {
+        before: "중요한 안정 상태를 표시하거나 보호하는 기능 없음",
+        after: "롤백 포인트(Rollback Point) 지정 기능 — 중요 버전을 명시적으로 표시하여 복원 기준점으로 활용",
+      },
+    ],
+    usageSteps: [
+      "사이드바 'DNA Rollback' 메뉴 클릭",
+      "등록된 Package 목록에서 대상 Package 선택 또는 ID 직접 입력",
+      "'버전 이력 조회' 버튼으로 전체 DNA 변경 이력 확인",
+      "중요한 시점에 '스냅샷 생성' 버튼으로 현재 DNA 상태를 버전으로 저장",
+      "문제 발생 시 이전 버전의 '이 버전으로 롤백' 버튼 클릭",
+      "확인 다이얼로그에서 롤백 실행 — 롤백 완료 후 새 버전으로 자동 기록",
+    ],
+    path: "/dna-rollback",
+  },
+];
+
+function ReinforcementSection() {
+  const [openFeature, setOpenFeature] = useState<string | null>("physical-action");
+
+  return (
+    <div className="space-y-4">
+      {/* 섹션 헤더 */}
+      <div className="rounded-xl border border-indigo-700/40 bg-indigo-950/30 p-5">
+        <div className="flex items-start gap-4">
+          <div className="p-3 rounded-xl bg-indigo-900/40 border border-indigo-700/40 shrink-0">
+            <TrendingUp size={28} className="text-indigo-400" />
+          </div>
+          <div>
+            <div className="flex items-center gap-3 flex-wrap mb-1">
+              <h2 className="text-2xl font-bold text-indigo-300">PSDI Safety Reinforcement v1.0</h2>
+              <Badge className="bg-indigo-500/20 text-indigo-300 border-indigo-500/30 text-xs">신규 기능</Badge>
+            </div>
+            <p className="text-slate-400 text-base leading-relaxed">
+              기존 MIP 엔진의 안전 체계를 3가지 측면에서 보강한 업데이트입니다.
+              물리적 명령 제어, 감정 의존도 감지, DNA 버전 관리를 새롭게 추가하여
+              이식 전·중·후 전 주기에 걸쳐 더 촘촘한 안전망을 구성합니다.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* 기존 vs 보강 후 요약 비교표 */}
+      <div className="rounded-xl border border-slate-700/40 bg-slate-800/30 overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-700/40">
+          <p className="text-white font-bold text-lg">기존 시스템 vs 보강 후 비교</p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-700/40">
+                <th className="text-left px-5 py-3 text-slate-400 font-medium w-1/4">항목</th>
+                <th className="text-left px-5 py-3 text-slate-400 font-medium w-3/8">
+                  <div className="flex items-center gap-2">
+                    <XIcon size={14} className="text-red-400" />
+                    기존 시스템
+                  </div>
+                </th>
+                <th className="text-left px-5 py-3 text-slate-400 font-medium w-3/8">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 size={14} className="text-emerald-400" />
+                    보강 후
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-700/20">
+              {[
+                {
+                  item: "물리적 명령 제어",
+                  before: "Safety Monitor 사후 감지에만 의존",
+                  after: "Tier 0~4 사전 분류 — 위험 명령 실행 전 차단",
+                },
+                {
+                  item: "Tier 4 위험 행동",
+                  before: "정책 위반 없으면 실행 가능",
+                  after: "기본 차단 — 어떤 경우에도 실행 불가",
+                },
+                {
+                  item: "AI 감정 의존도",
+                  before: "p_emotion 정책으로 간접 제어만 가능",
+                  after: "5개 DNA 지표 정량 분석 + 4단계 위험 레벨 자동 산출",
+                },
+                {
+                  item: "DNA 변경 이력",
+                  before: "현재 상태만 저장, 이력 없음",
+                  after: "모든 변경을 SHA-256 해시와 함께 버전으로 관리",
+                },
+                {
+                  item: "DNA 오염 복구",
+                  before: "복원 불가 — 재이식만 가능",
+                  after: "원하는 버전으로 즉시 롤백 + 감사 추적 유지",
+                },
+                {
+                  item: "명령 승인 방식",
+                  before: "전체 Kill Switch만 존재",
+                  after: "개별 명령 단위 승인/거부 + MFA 강제 (Tier 3)",
+                },
+              ].map((row, i) => (
+                <tr key={i} className="hover:bg-slate-700/10 transition-colors">
+                  <td className="px-5 py-3 text-white font-medium">{row.item}</td>
+                  <td className="px-5 py-3 text-red-300/80">{row.before}</td>
+                  <td className="px-5 py-3 text-emerald-300/90">{row.after}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* 각 보강 상세 */}
+      {reinforcementFeatures.map((feature) => {
+        const Icon = feature.icon;
+        const isOpen = openFeature === feature.id;
+
+        return (
+          <div
+            key={feature.id}
+            className={`rounded-xl border ${feature.border} ${feature.bg} overflow-hidden`}
+          >
+            {/* 헤더 (클릭 토글) */}
+            <button
+              className="w-full p-5 text-left hover:bg-white/5 transition-colors"
+              onClick={() => setOpenFeature(isOpen ? null : feature.id)}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-start gap-4">
+                  <div className={`p-2.5 rounded-xl ${feature.bg} border ${feature.border} shrink-0`}>
+                    <Icon size={24} className={feature.color} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-3 flex-wrap mb-1">
+                      <h3 className={`text-xl font-bold ${feature.color}`}>{feature.title}</h3>
+                      <Badge className={`text-xs border ${feature.badgeColor}`}>{feature.badge}</Badge>
+                    </div>
+                    <p className="text-slate-400 text-sm">{feature.subtitle}</p>
+                  </div>
+                </div>
+                {isOpen
+                  ? <ChevronUp size={18} className="text-slate-400 shrink-0 ml-4" />
+                  : <ChevronDown size={18} className="text-slate-400 shrink-0 ml-4" />
+                }
+              </div>
+            </button>
+
+            {isOpen && (
+              <div className="px-5 pb-5 space-y-5">
+                {/* 설명 */}
+                <p className="text-slate-300 text-base leading-relaxed border-l-4 border-slate-600 pl-4">
+                  {feature.description}
+                </p>
+
+                {/* 개선점 Before/After */}
+                <div>
+                  <p className="text-white font-semibold mb-3 flex items-center gap-2">
+                    <TrendingUp size={16} className={feature.color} />
+                    기존 대비 개선점
+                  </p>
+                  <div className="space-y-2">
+                    {feature.improvements.map((imp, i) => (
+                      <div key={i} className="rounded-lg overflow-hidden border border-slate-700/30">
+                        <div className="flex items-start gap-3 px-4 py-3 bg-red-950/20">
+                          <XIcon size={14} className="text-red-400 shrink-0 mt-0.5" />
+                          <p className="text-red-300/80 text-sm leading-relaxed">{imp.before}</p>
+                        </div>
+                        <div className="flex items-start gap-3 px-4 py-2.5 bg-emerald-950/20 border-t border-slate-700/20">
+                          <ArrowRight size={14} className="text-emerald-400 shrink-0 mt-0.5" />
+                          <p className="text-emerald-300/90 text-sm leading-relaxed">{imp.after}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 사용 방법 */}
+                <div>
+                  <p className="text-white font-semibold mb-3 flex items-center gap-2">
+                    <Radio size={16} className={feature.color} />
+                    사용 방법
+                  </p>
+                  <ol className="space-y-2">
+                    {feature.usageSteps.map((step, i) => (
+                      <li key={i} className="flex items-start gap-3 text-slate-300 text-sm leading-relaxed">
+                        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${feature.bg} border ${feature.border} ${feature.color}`}>
+                          {i + 1}
+                        </span>
+                        <span>{step}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+
+                {/* 메뉴 바로가기 */}
+                <div className={`rounded-lg border ${feature.border} px-4 py-3 flex items-center justify-between`}>
+                  <span className="text-slate-400 text-sm">메뉴 위치</span>
+                  <span className={`font-mono text-sm font-bold ${feature.color}`}>
+                    사이드바 → {feature.path === "/physical-actions" ? "Physical Action" : feature.path === "/emotional-risk" ? "Emotional Risk" : "DNA Rollback"}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── 메인 페이지 ─────────────────────────────────────────────────────────────
 
 export default function GuidePage() {
@@ -505,6 +846,7 @@ export default function GuidePage() {
             <Badge variant="outline" className="border-cyan-700 text-cyan-400 text-sm px-3 py-1">PSDI v2.0</Badge>
             <Badge variant="outline" className="border-violet-700 text-violet-400 text-sm px-3 py-1">WO-MIP-2026-003</Badge>
             <Badge variant="outline" className="border-emerald-700 text-emerald-400 text-sm px-3 py-1">AISI 준수</Badge>
+            <Badge variant="outline" className="border-indigo-700 text-indigo-400 text-sm px-3 py-1">Safety Reinforcement v1.0</Badge>
           </div>
         </div>
 
@@ -513,6 +855,9 @@ export default function GuidePage() {
 
         {/* 주의사항 */}
         <NoticeBanner />
+
+        {/* ★ PSDI Safety Reinforcement 보강 섹션 (기존 대비 개선점) */}
+        <ReinforcementSection />
 
         {/* 섹션별 가이드 */}
         {sections.map((section) => (

@@ -99,3 +99,4 @@
 - [x] Emotional Dependency Risk 감지 및 경고 시스템 구현 (DNA 감정 지표 기반)
 - [x] DNA Rollback 기능 구현 (Package 버전 관리 + 롤백 UI)
 - [x] server/mip/safety-reinforcement.test.ts — 10개 테스트 (Physical Action 6개, Emotional Risk 4개)
+- [x] GuidePage.tsx에 PSDI Safety Reinforcement v1.0 섹션 추가 (기존 vs 보강 후 비교표 + 보강 1~3 상세 설명)
