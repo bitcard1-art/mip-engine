@@ -161,6 +161,12 @@ export const mipRouter = router({
       return db.select().from(mipDevices).where(eq(mipDevices.userId, String(ctx.user.id))).orderBy(desc(mipDevices.createdAt));
     }),
 
+    listAll: protectedProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return [];
+      return db.select().from(mipDevices).orderBy(desc(mipDevices.createdAt)).limit(200);
+    }),
+
     verify: protectedProcedure
       .input(z.object({ deviceId: z.string() }))
       .mutation(async ({ ctx, input }) => {
@@ -239,6 +245,7 @@ export const mipRouter = router({
       const db = await getDb();
       if (!db) return [];
       return db.select().from(mipPackages)
+        .where(eq(mipPackages.status, 'validated'))
         .orderBy(desc(mipPackages.receivedAt))
         .limit(100);
     }),

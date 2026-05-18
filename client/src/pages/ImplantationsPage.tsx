@@ -2,7 +2,7 @@ import MIPLayout from "@/components/MIPLayout";
 import { trpc } from "@/lib/trpc";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+// Input removed - using Select for packageId
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -215,7 +215,8 @@ export default function ImplantationsPage() {
   const utils = trpc.useUtils();
 
   const { data: implantations, isLoading } = trpc.mip.implant.list.useQuery();
-  const { data: devices } = trpc.mip.devices.list.useQuery();
+  const { data: devices } = trpc.mip.devices.listAll.useQuery();
+  const { data: packages, isLoading: packagesLoading } = trpc.mip.packages.listAll.useQuery();
 
   const startMutation = trpc.mip.implant.start.useMutation({
     onSuccess: (data) => {
@@ -269,13 +270,43 @@ export default function ImplantationsPage() {
                 </Select>
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">MIO Package ID</label>
-                <Input
-                  placeholder="패키지 ID 입력..."
-                  value={form.packageId}
-                  onChange={(e) => setForm({ ...form, packageId: e.target.value })}
-                  className="bg-input border-border text-foreground font-mono text-xs"
-                />
+                <label className="text-xs text-muted-foreground mb-1 block">MIO Package 선택</label>
+                <Select value={form.packageId} onValueChange={(v) => setForm({ ...form, packageId: v })} disabled={packagesLoading}>
+                  <SelectTrigger className="bg-input border-border text-foreground">
+                    <SelectValue placeholder={packagesLoading ? "패키지 로딩 중..." : "패키지 선택..."} />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border">
+                    {packagesLoading ? (
+                      <SelectItem value="__loading__" disabled>
+                        <span className="flex items-center gap-2">
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          로딩 중...
+                        </span>
+                      </SelectItem>
+                    ) : packages && packages.length > 0 ? (
+                      packages.map((pkg) => {
+                        let pkgName = pkg.id;
+                        let pkgDesc = "";
+                        try {
+                          const ctx = pkg.contextJson ? JSON.parse(pkg.contextJson) : null;
+                          if (ctx?.name) pkgName = ctx.name;
+                          if (ctx?.description) pkgDesc = ctx.description;
+                        } catch {}
+                        return (
+                          <SelectItem key={pkg.id} value={pkg.id}>
+                            <div className="flex flex-col gap-0.5 py-0.5">
+                              <span className="text-sm font-medium">{pkgName}</span>
+                              {pkgDesc && <span className="text-xs text-muted-foreground">{pkgDesc.substring(0, 40)}...</span>}
+                              <span className="text-[10px] text-muted-foreground font-mono">{pkg.id}</span>
+                            </div>
+                          </SelectItem>
+                        );
+                      })
+                    ) : (
+                      <SelectItem value="__none__" disabled>등록된 패키지가 없습니다</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">연결 프로토콜</label>
