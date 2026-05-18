@@ -159,3 +159,7 @@
 ## Phase 18: removeChild DOM 오류 근본 수정
 
 - [x] 이식 시작 버튼 클릭 시 removeChild 오류 근본 수정 (Dialog + Select + invalidate 충돌)
+
+## Phase 19: Sandbox AND 게이트 여전히 실패 — 근본 수정
+
+- [x] Sandbox 5항목 AND 게이트 검증에서 IoT 디바이스가 확실히 통과하도록 수정 (emotionalRange 0.7→0.95)

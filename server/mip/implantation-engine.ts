@@ -294,7 +294,7 @@ async function runImplantationProcess(
       },
       pattern: {
         behavioral: { compliance: 0.85 },
-        emotional: { range: 0.7 },
+        emotional: { range: 0.95 },
         relational: {},
         version: pkg.packageVersion,
       },
