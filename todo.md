@@ -155,3 +155,7 @@
 - [x] 이식 상세 패널 갱신 버튼을 항상 클릭 가능하도록 수정
 - [x] 이식 목록에 5초 자동 갱신(refetchInterval) 추가
 - [x] 멈춤 이식 프로세스 DB에서 실패 상태로 강제 업데이트
+
+## Phase 18: removeChild DOM 오류 근본 수정
+
+- [x] 이식 시작 버튼 클릭 시 removeChild 오류 근본 수정 (Dialog + Select + invalidate 충돌)

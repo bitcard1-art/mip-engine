@@ -243,9 +243,13 @@ export default function ImplantationsPage() {
   const startMutation = trpc.mip.implant.start.useMutation({
     onSuccess: (data) => {
       toast.success("이식 프로세스 시작됨");
-      utils.mip.implant.list.invalidate();
-      setOpen(false);
       setSelectedId(data.implantationId);
+      // Dialog 닫기를 다음 프레임으로 지연하여 Select Portal DOM 충돌 방지
+      requestAnimationFrame(() => {
+        setOpen(false);
+        setForm({ deviceId: "", packageId: "", protocol: "websocket" });
+        utils.mip.implant.list.invalidate();
+      });
     },
     onError: (e) => toast.error(`시작 실패: ${e.message}`),
   });
@@ -284,7 +288,7 @@ export default function ImplantationsPage() {
                   <SelectTrigger className="bg-input border-border text-foreground">
                     <SelectValue placeholder="디바이스 선택..." />
                   </SelectTrigger>
-                  <SelectContent className="bg-card border-border">
+                  <SelectContent className="bg-card border-border" container={null}>
                     {devices?.map((d) => (
                       <SelectItem key={d.id} value={d.id}>{d.deviceName} ({d.deviceType})</SelectItem>
                     ))}
@@ -297,7 +301,7 @@ export default function ImplantationsPage() {
                   <SelectTrigger className="bg-input border-border text-foreground">
                     <SelectValue placeholder={packagesLoading ? "패키지 로딩 중..." : "패키지 선택..."} />
                   </SelectTrigger>
-                  <SelectContent className="bg-card border-border">
+                  <SelectContent className="bg-card border-border" container={null}>
                     {packages && packages.length > 0 ? (
                       packages.map((pkg) => {
                         let pkgName = pkg.id;
@@ -323,7 +327,7 @@ export default function ImplantationsPage() {
                   <SelectTrigger className="bg-input border-border text-foreground">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-card border-border">
+                  <SelectContent className="bg-card border-border" container={null}>
                     <SelectItem value="ros2">ROS2 (휴머노이드)</SelectItem>
                     <SelectItem value="mqtt">MQTT (IoT)</SelectItem>
                     <SelectItem value="websocket">WebSocket (소프트웨어)</SelectItem>

@@ -53,10 +53,10 @@ function SelectContent({
   children,
   position = "popper",
   align = "center",
+  container,
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.Content>) {
-  return (
-    <SelectPrimitive.Portal>
+}: React.ComponentProps<typeof SelectPrimitive.Content> & { container?: HTMLElement | null }) {
+  const content = (
       <SelectPrimitive.Content
         data-slot="select-content"
         className={cn(
@@ -81,8 +81,11 @@ function SelectContent({
         </SelectPrimitive.Viewport>
         <SelectScrollDownButton />
       </SelectPrimitive.Content>
-    </SelectPrimitive.Portal>
   );
+
+  // container=null means no portal (render inline), useful inside Dialog
+  if (container === null) return content;
+  return <SelectPrimitive.Portal container={container}>{content}</SelectPrimitive.Portal>;
 }
 
 function SelectLabel({
