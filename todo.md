@@ -100,3 +100,13 @@
 - [x] DNA Rollback 기능 구현 (Package 버전 관리 + 롤백 UI)
 - [x] server/mip/safety-reinforcement.test.ts — 10개 테스트 (Physical Action 6개, Emotional Risk 4개)
 - [x] GuidePage.tsx에 PSDI Safety Reinforcement v1.0 섹션 추가 (기존 vs 보강 후 비교표 + 보강 1~3 상세 설명)
+
+## Phase 10: PSDI v2.0 §14 Runtime Isolation Layer 전체 통합
+
+- [x] DB 스키마 4개 추가 (mip_core_identities, mip_emotional_bridge_events, mip_isolation_violations, mip_deployment_security)
+- [x] isolation-layer.ts — §14.2.3 10개 위반 패턴 감지, §14.4 Core Identity 생성/검증, §14.6 Deployment 보안 초기화
+- [x] emotional-bridge.ts — §14.2.5 Bounded Permeable Isolation 4개 채널 (emotional_bridge, context_relay, memory_sync, trust_channel)
+- [x] implantation-engine.ts — §14 전체를 8단계에 단계별 통합 (Stage 1~8 각각에 §14 로직 삽입)
+- [x] mip.ts 라우터에 isolationLayer 서브라우터 추가 (8개 프로시저)
+- [x] IsolationLayerPage.tsx — §14 모니터링 UI (4개 탭: 대시보드/명령검사/Emotional Bridge/위반통계)
+- [x] isolation-layer.test.ts — 22개 테스트 (§14.1/§14.2.3/§14.2.5/§14.4/§14.6 전체 커버리지)

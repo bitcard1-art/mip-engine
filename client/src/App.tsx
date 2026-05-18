@@ -18,6 +18,7 @@ import PackagesPage from "./pages/PackagesPage";
 import PhysicalActionPage from "./pages/PhysicalActionPage";
 import EmotionalRiskPage from "./pages/EmotionalRiskPage";
 import DnaRollbackPage from "./pages/DnaRollbackPage";
+import IsolationLayerPage from "./pages/IsolationLayerPage";
 
 function Router() {
   return (
@@ -36,6 +37,7 @@ function Router() {
       <Route path="/physical-actions" component={PhysicalActionPage} />
       <Route path="/emotional-risk" component={EmotionalRiskPage} />
       <Route path="/dna-rollback" component={DnaRollbackPage} />
+      <Route path="/isolation-layer" component={IsolationLayerPage} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

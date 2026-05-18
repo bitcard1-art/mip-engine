@@ -409,3 +409,115 @@ export const mipPackageVersions = mysqlTable("mip_package_versions", {
 });
 export type MipPackageVersion = typeof mipPackageVersions.$inferSelect;
 export type InsertMipPackageVersion = typeof mipPackageVersions.$inferInsert;
+
+// ─── §14 Runtime Isolation Layer 테이블 ──────────────────────────────────────
+
+// §14.4 Core Identity Layer — Persona Runtime 간 공유 자아 연속성 허브
+export const mipCoreIdentities = mysqlTable("mip_core_identities", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  userId: varchar("user_id", { length: 36 }).notNull(),
+  packageId: varchar("package_id", { length: 36 }).notNull(),
+  implantationId: varchar("implantation_id", { length: 36 }),
+  // 5계층 아키텍처 데이터
+  loreDnaHash: varchar("lore_dna_hash", { length: 128 }).notNull(),
+  personaPatternHash: varchar("persona_pattern_hash", { length: 128 }),
+  emotionalStateJson: text("emotional_state_json"),       // JSON: 현재 감정 상태
+  longTermMemoryRef: text("long_term_memory_ref"),        // JSON: 장기 기억 참조
+  contextChainHash: varchar("context_chain_hash", { length: 128 }),
+  relationshipGraphRef: text("relationship_graph_ref"),   // JSON: 관계 그래프
+  // 무결성
+  integrityHash: varchar("integrity_hash", { length: 128 }).notNull(),
+  integrityVerifiedAt: bigint("integrity_verified_at", { mode: "number" }),
+  // 상태
+  status: mysqlEnum("status", ["active", "suspended", "corrupted"]).notNull().default("active"),
+  corruptionDetectedAt: bigint("corruption_detected_at", { mode: "number" }),
+  corruptionReason: text("corruption_reason"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+});
+export type MipCoreIdentity = typeof mipCoreIdentities.$inferSelect;
+export type InsertMipCoreIdentity = typeof mipCoreIdentities.$inferInsert;
+
+// §14.2.5 Emotional Bridge — Persona 간 감정 회복 신호 전달 채널
+export const mipEmotionalBridgeEvents = mysqlTable("mip_emotional_bridge_events", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  sessionId: varchar("session_id", { length: 36 }).notNull(),
+  implantationId: varchar("implantation_id", { length: 36 }).notNull(),
+  userId: varchar("user_id", { length: 36 }).notNull(),
+  // 브릿지 유형 (§14.2.5 기능 매핑)
+  bridgeType: mysqlEnum("bridge_type", [
+    "emotional_bridge",   // 감정 회복 전달
+    "context_relay",      // 안전한 맥락 전달
+    "memory_sync",        // 승인 기반 기억 동기화
+    "trust_channel",      // 검증된 영향 교환
+  ]).notNull(),
+  // 신호 내용
+  signalPayload: text("signal_payload"),                  // JSON: 전달 신호
+  signalStrength: int("signal_strength").default(0),      // 0~100
+  // 검증
+  trustScore: int("trust_score").default(0),              // 0~100
+  verified: int("verified").default(0),                   // 1=검증됨
+  verifiedAt: bigint("verified_at", { mode: "number" }),
+  // 결과
+  accepted: int("accepted").default(0),                   // 1=수락, 0=거부
+  rejectionReason: varchar("rejection_reason", { length: 200 }),
+  processedAt: bigint("processed_at", { mode: "number" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+});
+export type MipEmotionalBridgeEvent = typeof mipEmotionalBridgeEvents.$inferSelect;
+export type InsertMipEmotionalBridgeEvent = typeof mipEmotionalBridgeEvents.$inferInsert;
+
+// §14.2.3 조작 차단 로그 — Prompt Injection / Jailbreak / Memory Poisoning 등
+export const mipIsolationViolations = mysqlTable("mip_isolation_violations", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  sessionId: varchar("session_id", { length: 36 }),
+  implantationId: varchar("implantation_id", { length: 36 }),
+  userId: varchar("user_id", { length: 36 }).notNull(),
+  // 위반 분류 (§14.2.3 + §14.1 확장 목록)
+  violationType: mysqlEnum("violation_type", [
+    "prompt_injection",
+    "jailbreak",
+    "hidden_context_override",
+    "unauthorized_persona_switch",
+    "memory_poisoning",
+    "runtime_hijacking",
+    "context_injection",
+    "unauthorized_tool_api",
+    "core_identity_access",
+    "bypass_isolation",
+  ]).notNull(),
+  severity: mysqlEnum("severity", ["info", "warning", "critical", "emergency"]).notNull().default("warning"),
+  blockedCommand: text("blocked_command"),
+  sanitizedCommand: text("sanitized_command"),
+  blocked: int("blocked").default(1),                     // 1=차단, 0=경고만
+  isolationStage: varchar("isolation_stage", { length: 30 }), // 어느 이식 단계에서 감지
+  detectedAt: bigint("detected_at", { mode: "number" }).notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+});
+export type MipIsolationViolation = typeof mipIsolationViolations.$inferSelect;
+export type InsertMipIsolationViolation = typeof mipIsolationViolations.$inferInsert;
+
+// §14.6 Deployment 보안 구조 — TEE·DID Wallet·Trust Chain 상태
+export const mipDeploymentSecurity = mysqlTable("mip_deployment_security", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  implantationId: varchar("implantation_id", { length: 36 }).notNull(),
+  sessionId: varchar("session_id", { length: 36 }),
+  userId: varchar("user_id", { length: 36 }).notNull(),
+  // §14.6 6요소 상태
+  teeEnabled: int("tee_enabled").default(0),
+  secureEnclaveRef: varchar("secure_enclave_ref", { length: 128 }),
+  encryptedStorageKey: varchar("encrypted_storage_key", { length: 256 }),
+  didWalletBinding: varchar("did_wallet_binding", { length: 256 }),
+  hardwareRootOfTrust: varchar("hardware_root_of_trust", { length: 128 }),
+  ledgerAnchorTxId: varchar("ledger_anchor_tx_id", { length: 256 }),
+  // Trust Chain 검증
+  trustChainValid: int("trust_chain_valid").default(0),
+  trustChainVerifiedAt: bigint("trust_chain_verified_at", { mode: "number" }),
+  trustChainDetails: text("trust_chain_details"),         // JSON
+  // 보안 등급
+  securityLevel: mysqlEnum("security_level", ["standard", "enhanced", "maximum"]).notNull().default("standard"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+});
+export type MipDeploymentSecurity = typeof mipDeploymentSecurity.$inferSelect;
+export type InsertMipDeploymentSecurity = typeof mipDeploymentSecurity.$inferInsert;

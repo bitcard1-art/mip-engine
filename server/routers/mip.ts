@@ -32,6 +32,23 @@ import { requestPhysicalAction, approvePhysicalAction, rejectPhysicalAction, ACT
 import { analyzeEmotionalRisk, getEmotionalRiskHistory } from "../mip/emotional-risk-engine";
 import { createDnaSnapshot, getDnaVersionHistory, rollbackDna } from "../mip/dna-rollback-engine";
 import { mipPhysicalActions, mipEmotionalRiskLogs, mipPackageVersions } from "../../drizzle/schema";
+import {
+  checkIsolationLayer,
+  getCoreIdentity,
+  getDeploymentSecurity,
+  getIsolationViolations,
+} from "../mip/isolation-layer";
+import {
+  processEmotionalBridge,
+  getEmotionalBridgeEvents,
+  calculateHomeostasisScore,
+} from "../mip/emotional-bridge";
+import {
+  mipCoreIdentities,
+  mipDeploymentSecurity,
+  mipIsolationViolations,
+  mipEmotionalBridgeEvents,
+} from "../../drizzle/schema";
 
 // ─── Zod 스키마 ───────────────────────────────────────────────────────────────
 
@@ -593,6 +610,116 @@ export const mipRouter = router({
         return db.select().from(mipEmotionalRiskLogs)
           .orderBy(desc(mipEmotionalRiskLogs.detectedAt))
           .limit(input.limit);
+      }),
+  }),
+
+  // ─── §14 Runtime Isolation Layer ────────────────────────────────────────
+  isolationLayer: router({
+    checkCommand: protectedProcedure
+      .input(z.object({
+        command: z.string(),
+        sessionId: z.string().optional(),
+        implantationId: z.string().optional(),
+        stage: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return checkIsolationLayer(input.command, {
+          sessionId: input.sessionId,
+          implantationId: input.implantationId,
+          userId: String(ctx.user.id),
+          stage: input.stage,
+        });
+      }),
+    getCoreIdentity: protectedProcedure
+      .input(z.object({ implantationId: z.string() }))
+      .query(async ({ input }) => {
+        return getCoreIdentity(input.implantationId);
+      }),
+    getDeploymentSecurity: protectedProcedure
+      .input(z.object({ implantationId: z.string() }))
+      .query(async ({ input }) => {
+        return getDeploymentSecurity(input.implantationId);
+      }),
+    violations: protectedProcedure
+      .input(z.object({
+        implantationId: z.string().optional(),
+        limit: z.number().default(50),
+      }))
+      .query(async ({ ctx, input }) => {
+        return getIsolationViolations({
+          userId: String(ctx.user.id),
+          implantationId: input.implantationId,
+          limit: input.limit,
+        });
+      }),
+    violationStats: protectedProcedure
+      .query(async () => {
+        const db = await getDb();
+        if (!db) return { total: 0, byType: {} as Record<string, number>, bySeverity: {} as Record<string, number>, recent: [] };
+        const rows = await db.select().from(mipIsolationViolations)
+          .orderBy(desc(mipIsolationViolations.detectedAt))
+          .limit(200);
+        const byType: Record<string, number> = {};
+        const bySeverity: Record<string, number> = {};
+        for (const r of rows) {
+          byType[r.violationType] = (byType[r.violationType] ?? 0) + 1;
+          bySeverity[r.severity] = (bySeverity[r.severity] ?? 0) + 1;
+        }
+        return { total: rows.length, byType, bySeverity, recent: rows.slice(0, 10) };
+      }),
+    sendEmotionalBridge: protectedProcedure
+      .input(z.object({
+        sessionId: z.string(),
+        implantationId: z.string(),
+        bridgeType: z.enum(["emotional_bridge", "context_relay", "memory_sync", "trust_channel"]),
+        signalPayload: z.record(z.string(), z.unknown()),
+        trustLevel: z.number().min(0).max(3).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return processEmotionalBridge({
+          sessionId: input.sessionId,
+          implantationId: input.implantationId,
+          userId: String(ctx.user.id),
+          bridgeType: input.bridgeType,
+          signalPayload: input.signalPayload,
+          sessionContext: { isolationActive: true, trustLevel: input.trustLevel },
+        });
+      }),
+    bridgeEvents: protectedProcedure
+      .input(z.object({ implantationId: z.string(), limit: z.number().default(20) }))
+      .query(async ({ input }) => {
+        return getEmotionalBridgeEvents(input.implantationId, input.limit);
+      }),
+    homeostasis: protectedProcedure
+      .input(z.object({ implantationId: z.string() }))
+      .query(async ({ input }) => {
+        return calculateHomeostasisScore(input.implantationId);
+      }),
+    dashboard: protectedProcedure
+      .query(async () => {
+        const db = await getDb();
+        if (!db) return null;
+        const [violations, coreIdentities, deploymentSecurities, bridgeEvents] = await Promise.all([
+          db.select().from(mipIsolationViolations).orderBy(desc(mipIsolationViolations.detectedAt)).limit(10),
+          db.select().from(mipCoreIdentities).orderBy(desc(mipCoreIdentities.createdAt)).limit(5),
+          db.select().from(mipDeploymentSecurity).orderBy(desc(mipDeploymentSecurity.createdAt)).limit(5),
+          db.select().from(mipEmotionalBridgeEvents).orderBy(desc(mipEmotionalBridgeEvents.createdAt)).limit(10),
+        ]);
+        return {
+          violations,
+          coreIdentities,
+          deploymentSecurities,
+          bridgeEvents,
+          summary: {
+            totalViolations: violations.length,
+            activeCoreIdentities: coreIdentities.filter(c => c.status === "active").length,
+            maxSecurityLevel: deploymentSecurities.find(d => d.securityLevel === "maximum") ? "maximum"
+              : deploymentSecurities.find(d => d.securityLevel === "enhanced") ? "enhanced" : "standard",
+            bridgeAcceptanceRate: bridgeEvents.length > 0
+              ? Math.round((bridgeEvents.filter(e => e.accepted === 1).length / bridgeEvents.length) * 100)
+              : 0,
+          },
+        };
       }),
   }),
 

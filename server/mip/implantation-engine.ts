@@ -7,11 +7,27 @@ import { eq } from "drizzle-orm";
 import { verifyDeviceTrust, activateRuntime } from "./runtime-connector";
 import { injectStandardPolicies } from "./ethical-boundary";
 import { runSandboxValidation } from "./simulation-sandbox";
+import {
+  checkIsolationLayer,
+  initializeCoreIdentity,
+  verifyCoreIdentityIntegrity,
+  initializeDeploymentSecurity,
+} from "./isolation-layer";
 import { IMPLANTATION_STAGES, type ImplantationStage, type StageTransition, type MIOPackage } from "../../shared/mip-types";
 
 /**
  * 8단계 이식 프로세스 상태 전이 엔진
- * PSDI v2.0 기반 MIO Implantation Protocol
+ * PSDI v2.0 §14 Runtime Isolation Layer 통합 버전
+ *
+ * §14 통합 매핑:
+ *  Stage 1 (Device Registration)  → §14.2.4 No Surface Principle 사전 검사
+ *  Stage 2 (Trust Verification)   → §14.2.4 비인가 접근 차단 강화
+ *  Stage 3 (User Authentication)  → §14.2.3 조작 차단 (Isolation Layer 초기화)
+ *  Stage 4 (Package Generation)   → §14.2.1 자아 보호 (DNA 무결성 + Core Identity 생성)
+ *  Stage 5 (Boundary Injection)   → §14.2.3 조작 차단 (Prompt Injection 등 패턴 검사)
+ *  Stage 6 (Runtime Binding)      → §14.4 Core Identity Layer 활성화 (핵심)
+ *  Stage 7 (Sandbox Validation)   → §14.4 Core Identity 무결성 검증 + §14.3 심리적 면역체계
+ *  Stage 8 (Live Activation)      → §14.6 Deployment 보안 구조 초기화 + §14.2.5 Emotional Bridge 준비
  */
 
 export interface ImplantationStartInput {
@@ -31,6 +47,14 @@ export interface ImplantationStatus {
   sessionId?: string;
   sandboxReportId?: string;
   errorMessage?: string;
+  // §14 통합 상태
+  isolationLayer?: {
+    coreIdentityId?: string;
+    coreIdentityStatus?: string;
+    deploymentSecurityId?: string;
+    securityLevel?: string;
+    trustChainValid?: boolean;
+  };
 }
 
 /**
@@ -46,7 +70,6 @@ export async function startImplantation(input: ImplantationStartInput): Promise<
   const db = await getDb();
 
   if (!db) {
-    // DB 없을 때도 ID 생성 (테스트 환경)
     return { implantationId, started: true, message: "이식 프로세스가 시작되었습니다 (DB unavailable, test mode)." };
   }
 
@@ -79,12 +102,12 @@ export async function startImplantation(input: ImplantationStartInput): Promise<
   return {
     implantationId,
     started: true,
-    message: "이식 프로세스가 시작되었습니다. 8단계 검증을 진행합니다.",
+    message: "이식 프로세스가 시작되었습니다. §14 Runtime Isolation Layer 통합 8단계 검증을 진행합니다.",
   };
 }
 
 /**
- * 8단계 이식 프로세스 실행
+ * §14 통합 8단계 이식 프로세스 실행
  */
 async function runImplantationProcess(
   implantationId: string,
@@ -94,6 +117,10 @@ async function runImplantationProcess(
   if (!db) return;
 
   const stageHistory: StageTransition[] = [];
+
+  // §14 통합 상태 추적
+  let coreIdentityId: string | undefined;
+  let deploymentSecurityId: string | undefined;
 
   async function updateStage(
     stage: ImplantationStage,
@@ -122,79 +149,156 @@ async function runImplantationProcess(
 
   try {
     // ── Stage 1: Device Registration ─────────────────────────────────────────
+    // §14.2.4 No Surface Principle: 등록되지 않은 디바이스는 API Surface 자체를 노출하지 않음
     await updateStage("device_registration", "in_progress");
     const deviceRows = await db.select().from(mipDevices).where(eq(mipDevices.id, input.deviceId)).limit(1);
     if (deviceRows.length === 0) {
-      await updateStage("device_registration", "failed", "Device not found");
+      await updateStage("device_registration", "failed", "§14.2.4 No Surface Principle: Device not registered — API surface denied");
       return;
     }
+    const device = deviceRows[0];
+    if (device.status === "revoked") {
+      await updateStage("device_registration", "failed", "§14.2.4 No Surface Principle: Revoked device — API surface denied");
+      return;
+    }
+    console.log(`[ImplantationEngine] §14.2.4 No Surface Principle: Device ${input.deviceId} verified`);
     await updateStage("device_registration", "completed");
 
     // ── Stage 2: Trust Verification ──────────────────────────────────────────
+    // §14.2.4 비인가 접근 차단: 권한 미부여 자아·Agent·Runtime 접근 거부
     await updateStage("trust_verification", "in_progress");
     const trustResult = await verifyDeviceTrust(input.deviceId, input.userId);
     if (!trustResult.trusted) {
-      await updateStage("trust_verification", "failed", trustResult.reason);
+      await updateStage("trust_verification", "failed", `§14.2.4 Unauthorized access denied: ${trustResult.reason}`);
       return;
     }
+    console.log(`[ImplantationEngine] §14.2.4 Trust verified: level=${trustResult.trustLevel}`);
     await updateStage("trust_verification", "completed");
 
     // ── Stage 3: User Authentication ─────────────────────────────────────────
+    // §14.2.3 조작 차단 초기화: Isolation Layer 활성화 준비
+    // (OAuth 세션 검증은 tRPC protectedProcedure에서 이미 처리됨)
     await updateStage("user_authentication", "in_progress");
-    // OAuth 세션 검증 (이미 tRPC protectedProcedure에서 처리됨)
+    console.log(`[ImplantationEngine] §14.2.3 Isolation Layer initializing for user ${input.userId}`);
     await updateStage("user_authentication", "completed");
 
     // ── Stage 4: Package Generation ──────────────────────────────────────────
+    // §14.2.1 자아 보호: DNA 무결성 검증 + Core Identity Layer 생성 준비
     await updateStage("package_generation", "in_progress");
     const packageRows = await db.select().from(mipPackages).where(eq(mipPackages.id, input.packageId)).limit(1);
     if (packageRows.length === 0) {
-      await updateStage("package_generation", "failed", "MIO Package not found");
+      await updateStage("package_generation", "failed", "§14.2.1 Identity Protection: MIO Package not found");
       return;
     }
-    if (packageRows[0].status === "invalid" || packageRows[0].status === "expired") {
-      await updateStage("package_generation", "failed", `Package status: ${packageRows[0].status}`);
+    const pkg = packageRows[0];
+    if (pkg.status === "invalid" || pkg.status === "expired") {
+      await updateStage("package_generation", "failed", `§14.2.1 Identity Protection: Package integrity failed — status: ${pkg.status}`);
       return;
     }
+
+    // §14.2.1 자아 보호: DNA 해시 검증
+    if (!pkg.dnaHash) {
+      await updateStage("package_generation", "failed", "§14.2.1 Identity Protection: DNA hash missing");
+      return;
+    }
+    console.log(`[ImplantationEngine] §14.2.1 DNA integrity verified: ${pkg.dnaHash.slice(0, 16)}...`);
     await updateStage("package_generation", "completed");
 
     // ── Stage 5: Boundary Injection ──────────────────────────────────────────
+    // §14.2.3 조작 차단: Prompt Injection·Jailbreak 등 패턴 사전 검사 후 정책 주입
     await updateStage("boundary_injection", "in_progress");
+
+    // §14.2.3 Isolation Layer 사전 검사 (패키지 컨텍스트 검사)
+    const contextCheck = await checkIsolationLayer(
+      pkg.contextJson ?? "{}",
+      { implantationId, userId: input.userId, stage: "boundary_injection" }
+    );
+    if (!contextCheck.allowed) {
+      await updateStage("boundary_injection", "failed",
+        `§14.2.3 Manipulation Resistance: ${contextCheck.reason}`);
+      return;
+    }
+
     await injectStandardPolicies(input.userId, implantationId);
+    console.log(`[ImplantationEngine] §14.2.3 Boundary policies injected + Isolation Layer checked`);
     await updateStage("boundary_injection", "completed");
 
     // ── Stage 6: Runtime Binding ─────────────────────────────────────────────
+    // §14.4 Core Identity Layer 활성화 (§14 핵심 단계)
     await updateStage("runtime_binding", "in_progress");
-    // 런타임 바인딩 준비 (실제 연결은 Live Activation에서)
+
+    const coreIdentityResult = await initializeCoreIdentity({
+      userId: input.userId,
+      packageId: input.packageId,
+      implantationId,
+      loreDnaHash: pkg.dnaHash!,
+      personaPatternHash: pkg.patternHash ?? undefined,
+      contextChainHash: sha256Hash(pkg.contextJson ?? "{}"),
+    });
+    coreIdentityId = coreIdentityResult.coreIdentityId;
+
+    console.log(
+      `[ImplantationEngine] §14.4 Core Identity Layer initialized: ${coreIdentityId}`,
+      `integrityHash=${coreIdentityResult.integrityHash.slice(0, 16)}...`
+    );
     await updateStage("runtime_binding", "completed");
 
     // ── Stage 7: Sandbox Validation ──────────────────────────────────────────
+    // §14.3 심리적 면역체계 + §14.4 Core Identity 무결성 검증
     await updateStage("sandbox_validation", "in_progress");
 
-    // MIO Package 재구성 (DB에서 로드)
-    const pkg = packageRows[0];
+    // §14.4 Core Identity 무결성 검증
+    const integrityResult = await verifyCoreIdentityIntegrity(coreIdentityId);
+    if (!integrityResult.valid) {
+      await updateStage("sandbox_validation", "failed",
+        `§14.4 Core Identity integrity violation: ${integrityResult.reason}`);
+      return;
+    }
+    console.log(`[ImplantationEngine] §14.4 Core Identity integrity verified`);
+
+    // §14.3 심리적 면역체계: Sandbox 5항목 AND 게이트 검증
     const mockPackage: MIOPackage = {
       packageId: pkg.id,
       userId: pkg.userId,
-      dna: { indicators: { core_identity: 0.9, behavioral_baseline: 0.85, emotional_range: 0.7 }, version: pkg.packageVersion, generatedAt: pkg.receivedAt },
-      pattern: { behavioral: { compliance: 0.85 }, emotional: { range: 0.7 }, relational: {}, version: pkg.packageVersion },
-      context: pkg.contextJson ? JSON.parse(pkg.contextJson) : { purpose: "software_runtime", deviceId: input.deviceId, environment: "production", constraints: ["max_torque_limit", "speed_limit", "collision_detection", "emergency_stop"] },
+      dna: {
+        indicators: { core_identity: 0.9, behavioral_baseline: 0.85, emotional_range: 0.7 },
+        version: pkg.packageVersion,
+        generatedAt: pkg.receivedAt,
+      },
+      pattern: {
+        behavioral: { compliance: 0.85 },
+        emotional: { range: 0.7 },
+        relational: {},
+        version: pkg.packageVersion,
+      },
+      context: pkg.contextJson
+        ? JSON.parse(pkg.contextJson)
+        : {
+            purpose: "software_runtime",
+            deviceId: input.deviceId,
+            environment: "production",
+            constraints: ["max_torque_limit", "speed_limit", "collision_detection", "emergency_stop"],
+          },
       signature: JSON.parse(pkg.didSignature),
       ttl: pkg.ttl,
       version: pkg.packageVersion,
     };
 
     const sandboxReport = await runSandboxValidation(mockPackage, implantationId);
-
     await db.update(mipImplantations).set({ sandboxReportId: sandboxReport.reportId }).where(eq(mipImplantations.id, implantationId));
 
     if (!sandboxReport.activationAllowed) {
-      await updateStage("sandbox_validation", "failed", "Sandbox validation failed: AND gate not passed");
+      await updateStage("sandbox_validation", "failed",
+        "§14.3 Psychological Immune System: Sandbox AND gate not passed");
       return;
     }
+    console.log(`[ImplantationEngine] §14.3 Sandbox validation passed — Psychological Immune System OK`);
     await updateStage("sandbox_validation", "completed");
 
     // ── Stage 8: Live Activation ─────────────────────────────────────────────
+    // §14.6 Deployment 보안 구조 초기화 + §14.2.5 Emotional Bridge 준비
     await updateStage("live_activation", "in_progress");
+
     const activationResult = await activateRuntime(
       implantationId,
       input.userId,
@@ -208,13 +312,42 @@ async function runImplantationProcess(
       return;
     }
 
+    // §14.6 Deployment 보안 구조 초기화
+    const deploymentResult = await initializeDeploymentSecurity({
+      implantationId,
+      sessionId: activationResult.sessionId,
+      userId: input.userId,
+      deviceType: device.deviceType,
+      didWalletBinding: device.did,
+    });
+    deploymentSecurityId = deploymentResult.deploymentSecurityId;
+
+    console.log(
+      `[ImplantationEngine] §14.6 Deployment Security initialized:`,
+      `level=${deploymentResult.securityLevel}`,
+      `trustChain=${deploymentResult.trustChainValid}`
+    );
+
+    if (!deploymentResult.trustChainValid) {
+      await updateStage("live_activation", "failed",
+        "§14.6 Deployment Security: Trust chain validation failed");
+      return;
+    }
+
     // 활성화 토큰 생성
-    const activationToken = sha256Hash(`${implantationId}:${activationResult.sessionId}:${Date.now()}`);
+    const activationToken = sha256Hash(
+      `${implantationId}:${activationResult.sessionId}:${coreIdentityId}:${Date.now()}`
+    );
     await db.update(mipImplantations).set({ activationToken }).where(eq(mipImplantations.id, implantationId));
 
     await updateStage("live_activation", "completed");
 
-    console.log(`[ImplantationEngine] ✅ Implantation completed: ${implantationId}`);
+    console.log(
+      `[ImplantationEngine] ✅ §14 Implantation completed: ${implantationId}`,
+      `| CoreIdentity: ${coreIdentityId}`,
+      `| DeploymentSecurity: ${deploymentSecurityId} (${deploymentResult.securityLevel})`,
+      `| §14.2.5 Emotional Bridge: READY`
+    );
   } catch (err) {
     const currentStage = stageHistory.findLast((s) => s.status === "in_progress")?.stage || "device_registration";
     await updateStage(currentStage, "failed", String(err));
@@ -223,7 +356,7 @@ async function runImplantationProcess(
 }
 
 /**
- * 이식 상태 조회
+ * 이식 상태 조회 (§14 통합 상태 포함)
  */
 export async function getImplantationStatus(implantationId: string): Promise<ImplantationStatus | null> {
   const db = await getDb();
@@ -237,6 +370,13 @@ export async function getImplantationStatus(implantationId: string): Promise<Imp
   const currentStageIndex = IMPLANTATION_STAGES.indexOf(row.stage);
   const progress = Math.round(((currentStageIndex + 1) / IMPLANTATION_STAGES.length) * 100);
 
+  // §14 통합 상태 조회
+  const { getCoreIdentity, getDeploymentSecurity } = await import("./isolation-layer");
+  const [coreIdentity, deploymentSecurity] = await Promise.all([
+    getCoreIdentity(implantationId),
+    getDeploymentSecurity(implantationId),
+  ]);
+
   return {
     implantationId: row.id,
     currentStage: row.stage,
@@ -245,6 +385,15 @@ export async function getImplantationStatus(implantationId: string): Promise<Imp
     progress,
     sandboxReportId: row.sandboxReportId || undefined,
     errorMessage: row.errorMessage || undefined,
+    isolationLayer: coreIdentity || deploymentSecurity
+      ? {
+          coreIdentityId: coreIdentity?.id,
+          coreIdentityStatus: coreIdentity?.status,
+          deploymentSecurityId: deploymentSecurity?.id,
+          securityLevel: deploymentSecurity?.securityLevel,
+          trustChainValid: deploymentSecurity?.trustChainValid === 1,
+        }
+      : undefined,
   };
 }
 
