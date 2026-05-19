@@ -561,3 +561,37 @@ export const mipLedgerAnchorDlq = mysqlTable("mip_ledger_anchor_dlq", {
 });
 export type MipLedgerAnchorDlq = typeof mipLedgerAnchorDlq.$inferSelect;
 export type InsertMipLedgerAnchorDlq = typeof mipLedgerAnchorDlq.$inferInsert;
+
+// ─── MIP Table: mip_message_checks ─────────────────────────────────────────
+// 메시지 안심 — 피싱/스미싱/사기 판정 이력
+export const mipMessageChecks = mysqlTable("mip_message_checks", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  userId: varchar("user_id", { length: 36 }).notNull(),
+  sessionId: varchar("session_id", { length: 36 }),
+  deviceId: varchar("device_id", { length: 36 }),
+  // 메시지 원본 정보
+  channel: mysqlEnum("channel", ["sms", "whatsapp", "line", "telegram", "kakaotalk", "instagram", "rcs", "other"]).notNull(),
+  senderNumber: varchar("sender_number", { length: 50 }),
+  senderName: varchar("sender_name", { length: 100 }),
+  messageContent: text("message_content").notNull(),
+  messageUrl: text("message_url"),                          // 메시지 내 포함된 URL
+  // 판정 결과
+  riskScore: int("risk_score").notNull(),                   // 0~100 (60 이상 피싱)
+  verdict: mysqlEnum("verdict", ["safe", "suspicious", "phishing", "blocked"]).notNull(),
+  verdictReason: text("verdict_reason"),                    // JSON: 판정 근거 상세
+  // 피싱 지표 점수 (개별)
+  senderTrustScore: int("sender_trust_score").default(0),   // 발신자 신뢰도 (0~30)
+  urgencyScore: int("urgency_score").default(0),            // 긴급성 강조 (0~20)
+  threatScore: int("threat_score").default(0),              // 계정 위협 언급 (0~20)
+  linkRiskScore: int("link_risk_score").default(0),         // 외부 링크 위험도 (0~25)
+  impersonationScore: int("impersonation_score").default(0),// 공식 사칭 (0~15)
+  infoRequestScore: int("info_request_score").default(0),   // 개인정보 요구 (0~20)
+  // 사용자 조치
+  userAction: mysqlEnum("user_action", ["pending", "approved", "rejected", "auto_blocked"]).default("pending").notNull(),
+  userActionAt: bigint("user_action_at", { mode: "number" }),
+  // 타임스탬프
+  checkedAt: bigint("checked_at", { mode: "number" }).notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+});
+export type MipMessageCheck = typeof mipMessageChecks.$inferSelect;
+export type InsertMipMessageCheck = typeof mipMessageChecks.$inferInsert;

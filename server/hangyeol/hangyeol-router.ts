@@ -27,6 +27,14 @@ import { startImplantation, getImplantationStatus } from "../mip/implantation-en
 import { checkIsolationLayer } from "../mip/isolation-layer";
 import { requestPhysicalAction } from "../mip/physical-action-engine";
 import { getActivePolicies, evaluateAllPolicies, composePolicies } from "../mip/ethical-boundary";
+import {
+  checkMessageSafety,
+  getMessageHistory,
+  approveMessage,
+  rejectMessage,
+  getMessageStats,
+  type MessageCheckInput,
+} from "../mip/message-safety";
 
 const hangyeolRouter = Router();
 
@@ -332,13 +340,138 @@ hangyeolRouter.get(
   }
 );
 
+// ─── 8. 메시지 안전 검사 ────────────────────────────────────────────────────
+// POST /api/hangyeol/message/check
+hangyeolRouter.post(
+  "/message/check",
+  hangyeolHmacMiddleware,
+  async (req, res) => {
+    try {
+      const { channel, senderNumber, senderName, messageContent, messageUrl, sessionId, deviceId } = req.body as {
+        channel: MessageCheckInput["channel"];
+        senderNumber?: string;
+        senderName?: string;
+        messageContent: string;
+        messageUrl?: string;
+        sessionId?: string;
+        deviceId?: string;
+      };
+
+      if (!channel || !messageContent) {
+        res.status(400).json({
+          error: "MISSING_FIELDS",
+          message: "channel, messageContent 필드가 필요합니다.",
+        });
+        return;
+      }
+
+      const result = await checkMessageSafety({
+        userId: HANGYEOL_SERVICE_USER_ID,
+        sessionId,
+        deviceId,
+        channel,
+        senderNumber,
+        senderName,
+        messageContent,
+        messageUrl,
+      });
+
+      // 차단/피싱이면 403, 나머지 200
+      const statusCode = result.verdict === "blocked" || result.verdict === "phishing" ? 403 : 200;
+      res.status(statusCode).json({ success: true, ...result });
+    } catch (err) {
+      console.error("[Hangyeol] 메시지 안전 검사 오류:", err);
+      res.status(500).json({ error: "INTERNAL_ERROR", message: "내부 서버 오류" });
+    }
+  }
+);
+
+// ─── 9. 메시지 검사 이력 조회 ───────────────────────────────────────────────
+// GET /api/hangyeol/message/history?channel=sms&verdict=phishing&limit=50
+hangyeolRouter.get(
+  "/message/history",
+  hangyeolHmacMiddleware,
+  async (req, res) => {
+    try {
+      const channel = req.query.channel as string | undefined;
+      const verdict = req.query.verdict as string | undefined;
+      const limit = Math.min(parseInt(req.query.limit as string || "50", 10), 200);
+
+      const history = await getMessageHistory({
+        userId: HANGYEOL_SERVICE_USER_ID,
+        channel,
+        verdict,
+        limit,
+      });
+
+      const stats = await getMessageStats(HANGYEOL_SERVICE_USER_ID);
+
+      res.json({
+        success: true,
+        total: history.length,
+        stats,
+        history,
+      });
+    } catch (err) {
+      console.error("[Hangyeol] 메시지 이력 조회 오류:", err);
+      res.status(500).json({ error: "INTERNAL_ERROR", message: "내부 서버 오류" });
+    }
+  }
+);
+
+// ─── 10. 보류 메시지 승인 ───────────────────────────────────────────────────
+// POST /api/hangyeol/message/:id/approve
+hangyeolRouter.post(
+  "/message/:id/approve",
+  hangyeolHmacMiddleware,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const success = await approveMessage(id);
+
+      if (!success) {
+        res.status(404).json({ error: "NOT_FOUND", message: "메시지 검사 이력을 찾을 수 없습니다." });
+        return;
+      }
+
+      res.json({ success: true, checkId: id, action: "approved", actionAt: Date.now() });
+    } catch (err) {
+      console.error("[Hangyeol] 메시지 승인 오류:", err);
+      res.status(500).json({ error: "INTERNAL_ERROR", message: "내부 서버 오류" });
+    }
+  }
+);
+
+// ─── 11. 보류 메시지 차단 ───────────────────────────────────────────────────
+// POST /api/hangyeol/message/:id/reject
+hangyeolRouter.post(
+  "/message/:id/reject",
+  hangyeolHmacMiddleware,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const success = await rejectMessage(id);
+
+      if (!success) {
+        res.status(404).json({ error: "NOT_FOUND", message: "메시지 검사 이력을 찾을 수 없습니다." });
+        return;
+      }
+
+      res.json({ success: true, checkId: id, action: "rejected", actionAt: Date.now() });
+    } catch (err) {
+      console.error("[Hangyeol] 메시지 차단 오류:", err);
+      res.status(500).json({ error: "INTERNAL_ERROR", message: "내부 서버 오류" });
+    }
+  }
+);
+
 // ─── 헬스체크 ────────────────────────────────────────────────────────────────
 // GET /api/hangyeol/health (인증 불필요)
 hangyeolRouter.get("/health", (_req, res) => {
   res.json({
     status: "ok",
     service: "mip-hangyeol-api",
-    version: "1.0.0",
+    version: "1.1.0",
     timestamp: Date.now(),
     endpoints: [
       "POST /api/hangyeol/devices/register",
@@ -348,6 +481,10 @@ hangyeolRouter.get("/health", (_req, res) => {
       "POST /api/hangyeol/isolation/check-command",
       "POST /api/hangyeol/physical-action/request",
       "GET  /api/hangyeol/audit/list",
+      "POST /api/hangyeol/message/check",
+      "GET  /api/hangyeol/message/history",
+      "POST /api/hangyeol/message/:id/approve",
+      "POST /api/hangyeol/message/:id/reject",
     ],
   });
 });

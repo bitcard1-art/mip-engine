@@ -191,3 +191,14 @@
 - [x] MIO 패키지 페이지에 LORE 패키지 요청 버튼 추가 (8자아 선택/전체선택)
 - [x] LORE → MIP 전송 Webhook 수신 코드 정상 동작 확인 (receivers.ts 정상)
 - [x] 패키지 요청 시 LORE API로 요청 전송하는 백엔드 프로시저 구현 (packages.requestFromLore)
+
+## Phase 24: 메시지 안심 (피싱 판정) 기능 구현
+
+- [x] DB 스키마: mip_message_checks 테이블 추가 (피싱 판정 이력)
+- [x] server/mip/message-safety.ts — 피싱 판정 엔진 (패턴 DB + 점수 산출 + 판정)
+- [x] 한결 API: POST /api/hangyeol/message/check — 메시지 안전 검사 엔드포인트
+- [x] 한결 API: GET /api/hangyeol/message/history — 메시지 검사 이력 조회
+- [x] 한결 API: POST /api/hangyeol/message/:id/approve — 보류 메시지 승인
+- [x] 한결 API: POST /api/hangyeol/message/:id/reject — 보류 메시지 차단
+- [x] server/mip/message-safety.test.ts — 피싱 판정 엔진 테스트 (14개 통과)
+- [x] 헬스체크 엔드포인트 목록 업데이트
