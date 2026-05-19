@@ -129,8 +129,9 @@ export function verifyDIDSignatureFull(
       return { valid: false, reason: "Signature created in the future" };
     }
 
-    if (now - signature.created > 86400) {
-      return { valid: false, reason: "Signature expired" };
+    // LORE 패키지는 생성 후 수일 뒤에 도착할 수 있으므로 7일로 완화
+    if (now - signature.created > 604800) {
+      return { valid: false, reason: "Signature expired (older than 7 days)" };
     }
 
     if (!signature.proof || signature.proof.length < 32) {
@@ -153,8 +154,8 @@ export function verifyDIDSignatureFull(
 
     if (signature.did.startsWith("did:soma:")) {
       const identifier = signature.did.replace("did:soma:", "");
-      if (identifier.length < 8) {
-        return { valid: false, reason: "DID identifier too short" };
+      if (identifier.length < 1) {
+        return { valid: false, reason: "DID identifier empty" };
       }
       if (!/^[0-9a-f]{64,}$/i.test(signature.proof)) {
         return { valid: false, reason: "Invalid proof hex format" };

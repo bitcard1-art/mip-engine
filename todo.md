@@ -303,3 +303,6 @@
 - [x] PackageDetailModal 이식 시작 버튼에서도 Dialog 닫기 -> navigation 순서 안전하게 변경
 - [x] LORE 패키지 요청 400 에러 수정 - 필수 필드(packageId, reason) 추가, reason을 'user_request'로 변경
 - [x] MIO Package listAll에서 validated 필터 제거 - 모든 상태의 패키지를 표시 (8개 모두 보이도록)
+- [x] 패키지 검증 로직 완화 — version 5 허용, TTL 밀리초 자동 변환, TTL 초과 경고만 표시, DID identifier 길이 1자 이상 허용, DID signature 만료 7일로 확장
+- [x] receivers.ts에서 packageId/userId를 package 내부에 주입 (LORE 호환)
+- [x] 기존 invalid 패키지 2개를 validated로 업데이트

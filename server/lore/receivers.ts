@@ -56,7 +56,9 @@ export async function handlePackageSubmit(req: Request, res: Response): Promise<
   }
 
   // MIO Package 전체 검증 (DID 서명, TTL, 구조)
-  const validationResult = await receiveAndValidatePackage(pkg);
+  // LORE는 packageId/userId를 최상위에 보내므로 package 내부에 주입
+  const fullPkg = { ...pkg, packageId: pkg.packageId || packageId, userId: pkg.userId || userId };
+  const validationResult = await receiveAndValidatePackage(fullPkg);
 
   // 이벤트 로그 저장
   if (db) {

@@ -37,7 +37,7 @@ export interface MIOPackage {
   context: RuntimeContext;
   signature: DIDSignature;
   ttl: number; // Unix timestamp (만료)
-  version: string; // "2.0"
+  version: string | number; // "2.0" or 5
 }
 
 // Package Validation Result

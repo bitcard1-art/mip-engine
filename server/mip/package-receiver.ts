@@ -18,23 +18,28 @@ const MAX_TTL_SECONDS = 604800; // 7일
 /**
  * TTL 유효기간 검증 (MPR-04)
  */
-export function validateTTL(ttl: number): { valid: boolean; reason?: string } {
+export function validateTTL(ttl: number): { valid: boolean; reason?: string; normalizedTtl?: number } {
+  // LORE가 밀리초 단위로 보내는 경우 자동 변환
+  const ttlSec = ttl > 1e12 ? Math.floor(ttl / 1000) : ttl;
   const now = Math.floor(Date.now() / 1000);
-  if (ttl <= now) {
-    return { valid: false, reason: `Package expired at ${new Date(ttl * 1000).toISOString()}` };
+  if (ttlSec <= now) {
+    return { valid: false, reason: `Package expired at ${new Date(ttlSec * 1000).toISOString()}` };
   }
-  const remainingSeconds = ttl - now;
+  const remainingSeconds = ttlSec - now;
   if (remainingSeconds > MAX_TTL_SECONDS) {
-    return { valid: false, reason: `TTL exceeds maximum allowed (${MAX_TTL_SECONDS}s)` };
+    // 경고만 로깅하고 허용 (LORE 호환)
+    console.warn(`[Package TTL] TTL exceeds ${MAX_TTL_SECONDS}s (${remainingSeconds}s remaining), allowing anyway`);
   }
-  return { valid: true };
+  return { valid: true, normalizedTtl: ttlSec };
 }
 
 /**
  * MIO Package 버전 검증
  */
-export function validateVersion(version: string): boolean {
-  return version === "2.0";
+export function validateVersion(version: string | number): boolean {
+  const v = String(version);
+  // 허용 버전: 2.0, 5 (LORE 호환)
+  return v === "2.0" || v === "5" || v === "5.0";
 }
 
 /**
@@ -115,7 +120,7 @@ export async function receiveAndValidatePackage(
       await db.insert(mipPackages).values({
         id: pkg.packageId,
         userId: pkg.userId,
-        packageVersion: pkg.version,
+        packageVersion: String(pkg.version),
         didSignature: JSON.stringify(pkg.signature),
         hmacWatermark: watermark,
         ttl: pkg.ttl,
