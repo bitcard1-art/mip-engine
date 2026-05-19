@@ -267,3 +267,13 @@
 - [x] 소프트웨어 선택 시 2차 드롭다운 표시: 일반 / SMS / 카카오톡 / WhatsApp / LINE / Telegram / Instagram DM / RCS
 - [x] 채널 선택 시 DID 대신 전화번호/계정 ID 입력 필드로 전환 (DID 자동 생성)
 - [x] 등록 시 실제 deviceType에 채널 타입 저장 (기존 백엔드 호환)
+
+## Phase 30: 채널 차단 시스템
+
+- [x] server/mip/channel-blocker.ts — 채널별 차단 액션 로직 (발신자 차단/메시지 격리/삭제)
+- [x] 한결 웹훅 페이로드에 blocked, blockAction, blockActionId 필드 추가
+- [x] channel/inbound 흐름에서 위험 감지 시 자동 차단 실행 후 결과 포함 전송
+- [x] POST /api/hangyeol/channel/unblock — 한결이 차단 해제 요청하는 역방향 API
+- [x] DB: mip_block_actions 테이블 (차단 이력 관리)
+- [x] Vitest 테스트 (18개 channel-blocker + 7개 channel-inbound)
+- [x] SMS/RCS 채널도 차단 시스템에 완전 통합 (어댑터 + 테스트 검증)

@@ -632,3 +632,39 @@ export const mipChannels = mysqlTable("mip_channels", {
 });
 export type MipChannel = typeof mipChannels.$inferSelect;
 export type InsertMipChannel = typeof mipChannels.$inferInsert;
+
+// ─── MIP Table: mip_block_actions ───────────────────────────────────────────
+// 채널 차단 이력 관리
+export const mipBlockActions = mysqlTable("mip_block_actions", {
+  id: varchar("id", { length: 32 }).primaryKey(),              // nanoid
+  deviceId: varchar("device_id", { length: 32 }).notNull(),    // 이식된 디바이스 ID
+  channelType: varchar("channel_type", { length: 32 }).notNull(), // sms, kakaotalk, whatsapp 등
+  checkId: varchar("check_id", { length: 32 }),                // message-safety 검사 ID
+  // 차단 대상 정보
+  senderIdentifier: varchar("sender_identifier", { length: 128 }).notNull(), // 발신자 번호/ID
+  messagePreview: text("message_preview"),                     // 차단된 메시지 미리보기 (앞 100자)
+  // 차단 액션
+  blockAction: mysqlEnum("block_action", [
+    "sender_block",     // 발신자 차단
+    "message_quarantine", // 메시지 격리
+    "message_delete",   // 메시지 삭제
+    "auto_report"       // 자동 신고
+  ]).notNull(),
+  // 상태
+  status: mysqlEnum("status", [
+    "executed",         // 차단 실행됨
+    "failed",           // 차단 실패
+    "unblocked",        // 차단 해제됨
+    "pending"           // 대기 중
+  ]).default("pending").notNull(),
+  // 위험 정보
+  verdictLevel: varchar("verdict_level", { length: 16 }).notNull(), // phishing, blocked, suspicious
+  riskScore: int("risk_score"),                                // 0-100
+  // 타임스탬프
+  executedAt: bigint("executed_at", { mode: "number" }),
+  unblockedAt: bigint("unblocked_at", { mode: "number" }),
+  unblockedBy: varchar("unblocked_by", { length: 32 }),        // 해제 요청자 (hangyeol, user)
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+});
+export type MipBlockAction = typeof mipBlockActions.$inferSelect;
+export type InsertMipBlockAction = typeof mipBlockActions.$inferInsert;

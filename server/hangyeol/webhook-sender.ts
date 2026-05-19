@@ -27,6 +27,9 @@ export interface MessageCheckAlert {
   verdictReason: { summary: string; indicators: string[] };
   scores: Record<string, number>;
   action: string;
+  blocked?: boolean;          // 채널 API를 통한 실제 차단 실행 여부
+  blockAction?: string;       // sender_block | message_quarantine | message_delete | auto_report
+  blockActionId?: string;     // mip_block_actions 테이블 ID (차단 해제 시 사용)
   timestamp: number;
 }
 

@@ -76,10 +76,11 @@ hangyeolRouter.post(
         return;
       }
 
-      if (!["humanoid", "iot", "software"].includes(deviceType)) {
+      const validDeviceTypes = ["humanoid", "iot", "software", "sms", "kakaotalk", "whatsapp", "line", "telegram", "instagram", "rcs"];
+      if (!validDeviceTypes.includes(deviceType)) {
         res.status(400).json({
           error: "INVALID_DEVICE_TYPE",
-          message: "deviceType은 'humanoid', 'iot', 'software' 중 하나여야 합니다.",
+          message: `deviceType은 ${validDeviceTypes.join(', ')} 중 하나여야 합니다.`,
         });
         return;
       }
@@ -782,7 +783,29 @@ hangyeolRouter.post(
         messageUrl,
       });
 
-      // safe가 아니면 한결에 자동 전송
+      // 피싱/차단 판정 시 실제 채널 API를 통해 차단 실행
+      let blockResult: { success: boolean; actionId: string; blockAction: string } | null = null;
+      if (result.verdict === "phishing" || result.verdict === "blocked") {
+        const { executeBlock } = await import("../mip/channel-blocker");
+        // mipChannels에서 connectionConfig 조회
+        const { mipChannels } = await import("../../drizzle/schema");
+        const [channelRecord] = await db.select().from(mipChannels).where(eq(mipChannels.id, deviceId)).limit(1);
+        const connectionConfig = channelRecord?.connectionConfig as string | undefined;
+
+        const blocked = await executeBlock({
+          deviceId,
+          channelType: channelType || device.deviceType,
+          senderIdentifier: senderNumber || "unknown",
+          messagePreview: messageContent.slice(0, 100),
+          verdictLevel: result.verdict,
+          riskScore: result.riskScore,
+          checkId: result.checkId,
+          connectionConfig: connectionConfig || undefined,
+        });
+        blockResult = { success: blocked.success, actionId: blocked.actionId, blockAction: blocked.blockAction };
+      }
+
+      // safe가 아니면 한결에 자동 전송 (blocked/blockAction 포함)
       if (result.verdict !== "safe") {
         sendCheckResultToHangyeol({
           checkId: result.checkId,
@@ -796,6 +819,9 @@ hangyeolRouter.post(
           verdictReason: result.verdictReason,
           scores: result.scores,
           action: result.action,
+          blocked: blockResult?.success ?? false,
+          blockAction: blockResult?.blockAction,
+          blockActionId: blockResult?.actionId,
           timestamp: Date.now(),
         }).catch((err) => {
           console.error("[ChannelInbound] 한결 웹훅 전송 오류:", err);
@@ -808,9 +834,53 @@ hangyeolRouter.post(
         deviceId,
         channelType: device.deviceType,
         ...result,
+        blocked: blockResult?.success ?? false,
+        blockAction: blockResult?.blockAction ?? null,
+        blockActionId: blockResult?.actionId ?? null,
       });
     } catch (err) {
       console.error("[ChannelInbound] 채널 메시지 검열 오류:", err);
+      res.status(500).json({ error: "INTERNAL_ERROR", message: "내부 서버 오류" });
+    }
+  }
+);
+
+// ─── 16. 채널 차단 해제 (한결 역방향 API) ─────────────────────────────
+// POST /api/hangyeol/channel/unblock
+// 한결이 차단된 발신자/메시지의 차단을 해제 요청할 때 사용
+hangyeolRouter.post(
+  "/channel/unblock",
+  hangyeolHmacMiddleware,
+  async (req, res) => {
+    try {
+      const { actionId } = req.body as { actionId?: string };
+
+      if (!actionId) {
+        res.status(400).json({
+          error: "MISSING_ACTION_ID",
+          message: "actionId 필드가 필요합니다.",
+        });
+        return;
+      }
+
+      const { executeUnblock } = await import("../mip/channel-blocker");
+      const result = await executeUnblock({ actionId, requestedBy: "hangyeol" });
+
+      if (!result.success) {
+        res.status(404).json({
+          error: "UNBLOCK_FAILED",
+          message: result.error || "차단 해제에 실패했습니다.",
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        actionId,
+        message: "차단 해제 완료",
+      });
+    } catch (err) {
+      console.error("[ChannelUnblock] 차단 해제 오류:", err);
       res.status(500).json({ error: "INTERNAL_ERROR", message: "내부 서버 오류" });
     }
   }

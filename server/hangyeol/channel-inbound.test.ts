@@ -86,19 +86,27 @@ const mockActiveSession = {
 };
 
 function setupMockDb(device: any, session: any) {
+  let callCount = 0;
   const mockDb = {
     select: vi.fn().mockReturnThis(),
     from: vi.fn().mockReturnThis(),
     where: vi.fn().mockReturnThis(),
-    limit: vi.fn(),
+    limit: vi.fn().mockImplementation(() => {
+      callCount++;
+      if (callCount === 1) return Promise.resolve(device ? [device] : []);
+      if (callCount === 2) return Promise.resolve(session ? [session] : []);
+      // 3번째 이후: mipChannels 조회 (executeBlock 내부)
+      return Promise.resolve([]);
+    }),
+    insert: vi.fn().mockReturnValue({
+      values: vi.fn().mockResolvedValue(undefined),
+    }),
+    update: vi.fn().mockReturnValue({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue(undefined),
+      }),
+    }),
   };
-  // 첫 번째 호출: 디바이스 조회, 두 번째: 세션 조회
-  let callCount = 0;
-  mockDb.limit.mockImplementation(() => {
-    callCount++;
-    if (callCount === 1) return Promise.resolve(device ? [device] : []);
-    return Promise.resolve(session ? [session] : []);
-  });
   (getDb as any).mockResolvedValue(mockDb);
   return mockDb;
 }
