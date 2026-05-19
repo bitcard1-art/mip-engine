@@ -327,6 +327,82 @@ const instagramAdapter: ChannelBlockAdapter = {
   },
 };
 
+// ─── YouTube 어댑터 ────────────────────────────────────────────────────────
+
+const youtubeAdapter: ChannelBlockAdapter = {
+  async blockSender(config, senderIdentifier) {
+    // YouTube Data API v3: 댓글 작성자 차단 (markAsSpam + banAuthor)
+    try {
+      const { accessToken } = config;
+      const response = await fetch(
+        `https://www.googleapis.com/youtube/v3/comments/markAsSpam?id=${senderIdentifier}`,
+        { method: "POST", headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      if (!response.ok) return { success: false, error: `YouTube API ${response.status}` };
+      // banAuthor: 해당 채널에서 영구 차단
+      await fetch(
+        `https://www.googleapis.com/youtube/v3/comments/setModerationStatus?id=${senderIdentifier}&moderationStatus=rejected&banAuthor=true`,
+        { method: "POST", headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      return { success: true };
+    } catch (e: any) {
+      return { success: false, error: e.message };
+    }
+  },
+  async quarantineMessage(config, senderIdentifier) {
+    // YouTube: 댓글을 검토 대기(heldForReview)로 이동
+    try {
+      const { accessToken } = config;
+      const response = await fetch(
+        `https://www.googleapis.com/youtube/v3/comments/setModerationStatus?id=${senderIdentifier}&moderationStatus=heldForReview`,
+        { method: "POST", headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      return { success: response.ok, error: response.ok ? undefined : `YouTube API ${response.status}` };
+    } catch (e: any) {
+      return { success: false, error: e.message };
+    }
+  },
+  async deleteMessage(config, senderIdentifier) {
+    // YouTube Data API v3: 댓글 삭제
+    try {
+      const { accessToken } = config;
+      const response = await fetch(
+        `https://www.googleapis.com/youtube/v3/comments?id=${senderIdentifier}`,
+        { method: "DELETE", headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      return { success: response.ok, error: response.ok ? undefined : `YouTube API ${response.status}` };
+    } catch (e: any) {
+      return { success: false, error: e.message };
+    }
+  },
+  async reportSpam(config, senderIdentifier) {
+    // YouTube: 스팸 신고
+    try {
+      const { accessToken } = config;
+      const response = await fetch(
+        `https://www.googleapis.com/youtube/v3/comments/markAsSpam?id=${senderIdentifier}`,
+        { method: "POST", headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      return { success: response.ok, error: response.ok ? undefined : `YouTube API ${response.status}` };
+    } catch (e: any) {
+      return { success: false, error: e.message };
+    }
+  },
+  async unblockSender(config, senderIdentifier) {
+    // YouTube: 댓글 승인 (published로 변경)
+    try {
+      const { accessToken } = config;
+      const response = await fetch(
+        `https://www.googleapis.com/youtube/v3/comments/setModerationStatus?id=${senderIdentifier}&moderationStatus=published`,
+        { method: "POST", headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      return { success: response.ok, error: response.ok ? undefined : `YouTube API ${response.status}` };
+    } catch (e: any) {
+      return { success: false, error: e.message };
+    }
+  },
+};
+
 // ─── 어댑터 레지스트리 ──────────────────────────────────────────────────────
 
 const adapters: Record<string, ChannelBlockAdapter> = {
@@ -337,6 +413,7 @@ const adapters: Record<string, ChannelBlockAdapter> = {
   rcs: smsAdapter,       // RCS는 SMS 어댑터 공유 (동일 통신사 API)
   line: lineAdapter,
   instagram: instagramAdapter,
+  youtube: youtubeAdapter,
 };
 
 // ─── 차단 액션 결정 로직 ────────────────────────────────────────────────────

@@ -65,7 +65,7 @@ import {
 
 const DeviceRegisterSchema = z.object({
   deviceName: z.string().min(1).max(100),
-  deviceType: z.enum(["humanoid", "iot", "software", "sms", "kakaotalk", "whatsapp", "line", "telegram", "instagram", "rcs"]),
+  deviceType: z.enum(["humanoid", "iot", "software", "sms", "kakaotalk", "whatsapp", "line", "telegram", "instagram", "rcs", "youtube"]),
   did: z.string().min(10),
   metadata: z.record(z.string(), z.unknown()).optional(),
 });

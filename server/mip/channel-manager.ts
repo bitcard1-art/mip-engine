@@ -15,7 +15,7 @@ import { nanoid } from "nanoid";
 
 // ─── 타입 정의 ──────────────────────────────────────────────────────────────
 
-export type ChannelType = "sms" | "kakaotalk" | "whatsapp" | "line" | "telegram" | "instagram" | "rcs";
+export type ChannelType = "sms" | "kakaotalk" | "whatsapp" | "line" | "telegram" | "instagram" | "rcs" | "youtube";
 export type ProtectionLevel = "full" | "monitor_only" | "disabled";
 export type ChannelStatus = "active" | "disconnected" | "suspended" | "pending_verification";
 export type ChannelProtocol = "websocket" | "webhook" | "polling";
@@ -66,6 +66,7 @@ const DEFAULT_PROTOCOL: Record<ChannelType, ChannelProtocol> = {
   telegram: "webhook",
   instagram: "webhook",
   rcs: "webhook",
+  youtube: "webhook",
 };
 
 // ─── 채널 타입별 연결 방식 설명 ──────────────────────────────────────────────
@@ -105,6 +106,11 @@ export const CHANNEL_INFO: Record<ChannelType, { name: string; description: stri
     name: "RCS (차세대 문자)",
     description: "Rich Communication Services",
     authMethod: "통신사 RCS API 연동",
+  },
+  youtube: {
+    name: "YouTube",
+    description: "YouTube 댓글/라이브 채팅 모니터링",
+    authMethod: "Google OAuth 2.0 + YouTube Data API v3",
   },
 };
 

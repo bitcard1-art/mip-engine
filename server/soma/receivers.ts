@@ -157,7 +157,7 @@ async function markWebhookFailed(db: Awaited<ReturnType<typeof getDb>>, eventId:
 
 export interface DeviceRegisterRequest {
   userId: string;
-  deviceType: "humanoid" | "iot" | "software" | "sms" | "kakaotalk" | "whatsapp" | "line" | "telegram" | "instagram" | "rcs";
+  deviceType: "humanoid" | "iot" | "software" | "sms" | "kakaotalk" | "whatsapp" | "line" | "telegram" | "instagram" | "rcs" | "youtube";
   deviceName: string;
   did: string;
   didDocument: object;

@@ -30,6 +30,7 @@ const CHANNEL_TYPES = [
   { value: "telegram", label: "Telegram", icon: "✈️", placeholder: "Telegram ID (예: @username)" },
   { value: "instagram", label: "Instagram DM", icon: "📷", placeholder: "Instagram ID (예: @username)" },
   { value: "rcs", label: "RCS", icon: "💎", placeholder: "전화번호 (예: 01012345678)" },
+  { value: "youtube", label: "YouTube", icon: "▶️", placeholder: "유튜브 채널 ID (예: UC...)" },
 ];
 
 const isChannelType = (type: string) => CHANNEL_TYPES.some((c) => c.value === type);

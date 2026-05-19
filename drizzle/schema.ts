@@ -30,7 +30,7 @@ export type InsertUser = typeof users.$inferInsert;
 export const mipDevices = mysqlTable("mip_devices", {
   id: varchar("id", { length: 36 }).primaryKey(),
   userId: varchar("user_id", { length: 36 }).notNull(),
-  deviceType: mysqlEnum("device_type", ["humanoid", "iot", "software", "sms", "kakaotalk", "whatsapp", "line", "telegram", "instagram", "rcs"]).notNull(),
+  deviceType: mysqlEnum("device_type", ["humanoid", "iot", "software", "sms", "kakaotalk", "whatsapp", "line", "telegram", "instagram", "rcs", "youtube"]).notNull(),
   deviceName: varchar("device_name", { length: 100 }).notNull(),
   did: text("did").notNull(),
   trustLevel: int("trust_level").default(0), // 0~3
@@ -570,7 +570,7 @@ export const mipMessageChecks = mysqlTable("mip_message_checks", {
   sessionId: varchar("session_id", { length: 36 }),
   deviceId: varchar("device_id", { length: 36 }),
   // 메시지 원본 정보
-  channel: mysqlEnum("channel", ["sms", "whatsapp", "line", "telegram", "kakaotalk", "instagram", "rcs", "other"]).notNull(),
+  channel: mysqlEnum("channel", ["sms", "whatsapp", "line", "telegram", "kakaotalk", "instagram", "rcs", "youtube", "other"]).notNull(),
   senderNumber: varchar("sender_number", { length: 50 }),
   senderName: varchar("sender_name", { length: 100 }),
   messageContent: text("message_content").notNull(),
@@ -603,7 +603,7 @@ export const mipChannels = mysqlTable("mip_channels", {
   id: varchar("id", { length: 36 }).primaryKey(),              // nanoid
   // 채널 기본 정보
   channelType: mysqlEnum("channel_type", [
-    "sms", "kakaotalk", "whatsapp", "line", "telegram", "instagram", "rcs"
+    "sms", "kakaotalk", "whatsapp", "line", "telegram", "instagram", "rcs", "youtube"
   ]).notNull(),
   protocol: mysqlEnum("protocol", ["websocket", "webhook", "polling"]).default("websocket").notNull(),
   // 계정 정보

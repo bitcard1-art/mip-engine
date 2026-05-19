@@ -1,0 +1,1 @@
+ALTER TABLE `mip_devices` MODIFY COLUMN `device_type` enum('humanoid','iot','software','sms','kakaotalk','whatsapp','line','telegram','instagram','rcs','youtube') NOT NULL;

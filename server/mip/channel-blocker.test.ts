@@ -251,6 +251,58 @@ describe("channel-blocker", () => {
       expect(mockFetch).toHaveBeenCalled();
     });
 
+    it("YouTube 채널 — phishing 판정 시 sender_block 실행 (markAsSpam + banAuthor)", async () => {
+      createMockDb();
+      mockFetch.mockResolvedValue({ ok: true, status: 200 });
+
+      const { executeBlock } = await import("./channel-blocker");
+      const result = await executeBlock({
+        deviceId: "dev-yt-001",
+        channelType: "youtube",
+        senderIdentifier: "comment-id-abc123",
+        messagePreview: "피싱 링크 댓글",
+        verdictLevel: "phishing",
+        riskScore: 88,
+        checkId: "chk-yt-001",
+        connectionConfig: JSON.stringify({
+          accessToken: "test-youtube-oauth-token",
+        }),
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.blockAction).toBe("sender_block");
+      expect(mockFetch).toHaveBeenCalled();
+      // markAsSpam + setModerationStatus 호출 확인
+      const calls = mockFetch.mock.calls;
+      expect(calls.some((c: any) => c[0].includes("markAsSpam"))).toBe(true);
+      expect(calls.some((c: any) => c[0].includes("setModerationStatus") && c[0].includes("banAuthor=true"))).toBe(true);
+    });
+
+    it("YouTube 채널 — blocked 판정 시 message_quarantine 실행 (heldForReview)", async () => {
+      createMockDb();
+      mockFetch.mockResolvedValue({ ok: true, status: 200 });
+
+      const { executeBlock } = await import("./channel-blocker");
+      const result = await executeBlock({
+        deviceId: "dev-yt-002",
+        channelType: "youtube",
+        senderIdentifier: "comment-id-xyz789",
+        messagePreview: "의심 댓글",
+        verdictLevel: "blocked",
+        riskScore: 72,
+        checkId: "chk-yt-002",
+        connectionConfig: JSON.stringify({
+          accessToken: "test-youtube-oauth-token",
+        }),
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.blockAction).toBe("message_quarantine");
+      expect(mockFetch).toHaveBeenCalled();
+      const calls = mockFetch.mock.calls;
+      expect(calls.some((c: any) => c[0].includes("heldForReview"))).toBe(true);
+    });
+
     it("지원하지 않는 채널 타입 시 실패 반환", async () => {
       createMockDb();
 

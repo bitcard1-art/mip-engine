@@ -277,3 +277,12 @@
 - [x] DB: mip_block_actions 테이블 (차단 이력 관리)
 - [x] Vitest 테스트 (18개 channel-blocker + 7개 channel-inbound)
 - [x] SMS/RCS 채널도 차단 시스템에 완전 통합 (어댑터 + 테스트 검증)
+
+## Phase 31: YouTube 채널 타입 추가
+
+- [x] DB 스키마 deviceType enum에 youtube 추가 + 마이그레이션
+- [x] hangyeol-router.ts 디바이스 등록 유효성 검증에 youtube 추가
+- [x] channel-blocker.ts에 YouTube Data API v3 어댑터 구현 (댓글 삭제/스팸 신고/사용자 차단/라이브챗 밴)
+- [x] channel/inbound에서 youtube 채널 타입 인식
+- [x] DevicesPage UI 소프트웨어 하위 드롭다운에 YouTube 옵션 추가
+- [x] Vitest 테스트 (YouTube 어댑터 차단/해제) — 20개 통과

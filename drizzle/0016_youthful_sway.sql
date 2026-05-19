@@ -1,0 +1,2 @@
+ALTER TABLE `mip_channels` MODIFY COLUMN `channel_type` enum('sms','kakaotalk','whatsapp','line','telegram','instagram','rcs','youtube') NOT NULL;--> statement-breakpoint
+ALTER TABLE `mip_message_checks` MODIFY COLUMN `channel` enum('sms','whatsapp','line','telegram','kakaotalk','instagram','rcs','youtube','other') NOT NULL;

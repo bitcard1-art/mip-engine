@@ -62,7 +62,7 @@ hangyeolRouter.post(
   async (req, res) => {
     try {
       const { deviceType, deviceName, did, metadata } = req.body as {
-        deviceType: "humanoid" | "iot" | "software" | "sms" | "kakaotalk" | "whatsapp" | "line" | "telegram" | "instagram" | "rcs";
+        deviceType: "humanoid" | "iot" | "software" | "sms" | "kakaotalk" | "whatsapp" | "line" | "telegram" | "instagram" | "rcs" | "youtube";
         deviceName: string;
         did: string;
         metadata?: Record<string, unknown>;
@@ -76,7 +76,7 @@ hangyeolRouter.post(
         return;
       }
 
-      const validDeviceTypes = ["humanoid", "iot", "software", "sms", "kakaotalk", "whatsapp", "line", "telegram", "instagram", "rcs"];
+      const validDeviceTypes = ["humanoid", "iot", "software", "sms", "kakaotalk", "whatsapp", "line", "telegram", "instagram", "rcs", "youtube"];
       if (!validDeviceTypes.includes(deviceType)) {
         res.status(400).json({
           error: "INVALID_DEVICE_TYPE",
@@ -563,7 +563,7 @@ hangyeolRouter.post(
         return res.status(400).json({ error: "channelType과 accountId는 필수입니다." });
       }
 
-      const validTypes = ["sms", "kakaotalk", "whatsapp", "line", "telegram", "instagram", "rcs"];
+      const validTypes = ["sms", "kakaotalk", "whatsapp", "line", "telegram", "instagram", "rcs", "youtube"];
       if (!validTypes.includes(channelType)) {
         return res.status(400).json({ error: `유효하지 않은 channelType: ${channelType}` });
       }
@@ -740,7 +740,7 @@ hangyeolRouter.post(
       }
 
       // 채널 타입 디바이스인지 확인
-      const channelTypes = ["sms", "kakaotalk", "whatsapp", "line", "telegram", "instagram", "rcs"];
+      const channelTypes = ["sms", "kakaotalk", "whatsapp", "line", "telegram", "instagram", "rcs", "youtube"];
       if (!channelTypes.includes(device.deviceType)) {
         res.status(400).json({
           error: "NOT_CHANNEL_DEVICE",

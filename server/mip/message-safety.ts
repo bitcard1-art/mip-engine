@@ -252,7 +252,7 @@ export interface MessageCheckInput {
   userId: string;
   sessionId?: string;
   deviceId?: string;
-  channel: "sms" | "whatsapp" | "line" | "telegram" | "kakaotalk" | "instagram" | "rcs" | "other";
+  channel: "sms" | "whatsapp" | "line" | "telegram" | "kakaotalk" | "instagram" | "rcs" | "youtube" | "other";
   senderNumber?: string;
   senderName?: string;
   messageContent: string;
