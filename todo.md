@@ -301,3 +301,4 @@
 - [x] ErrorBoundary 개선 - DOM 조작 에러(insertBefore/removeChild) 자동 복구 (최대 2회 재시도)
 - [x] DevicesPage registerMutation에서도 Dialog 닫기 -> toast 순서 안전하게 변경
 - [x] PackageDetailModal 이식 시작 버튼에서도 Dialog 닫기 -> navigation 순서 안전하게 변경
+- [x] LORE 패키지 요청 400 에러 수정 - 필수 필드(packageId, reason) 추가, reason을 'user_request'로 변경

@@ -342,7 +342,7 @@ export const mipRouter = router({
             requestId,
             packageId: `request-${requestId}`,
             userId: String(ctx.user.id),
-            reason: "manual_request",
+            reason: "user_request",
             urgency: input.urgency,
             status: "pending",
             requestedAt: Date.now(),
@@ -351,13 +351,18 @@ export const mipRouter = router({
         }
 
         // LORE에 패키지 생성 요청
+        // LORE 필수 필드: requestId, packageId, userId, reason
+        // reason 허용값: ttl_expiring_soon | safety_anomaly_detected | boundary_policy_updated | user_request
         const result = await callLoreApi("/api/mip/package-request", {
           requestId,
+          packageId: `request-${requestId}`,
           userId: String(ctx.user.id),
+          reason: "user_request",
           personas: selectedPersonas,
           selectAll: input.selectAll,
           purpose: input.purpose,
           urgency: input.urgency,
+
           requestedAt: Date.now(),
         });
 
