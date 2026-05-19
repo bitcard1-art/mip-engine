@@ -1,13 +1,14 @@
 import MIPLayout from "@/components/MIPLayout";
 import { trpc } from "@/lib/trpc";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Cpu, Plus, CheckCircle, XCircle, Clock, ShieldOff, RefreshCw, MessageSquare, Phone } from "lucide-react";
+import { Cpu, Plus, CheckCircle, XCircle, Clock, ShieldOff, RefreshCw, MessageSquare, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 const STATUS_CONFIG = {
   active: { label: "활성", color: "text-emerald-400", icon: CheckCircle },
@@ -20,6 +21,7 @@ const DEVICE_TYPE_LABELS: Record<string, string> = {
   humanoid: "휴머노이드", iot: "IoT", software: "소프트웨어",
   sms: "SMS/MMS", kakaotalk: "카카오톡", whatsapp: "WhatsApp",
   line: "LINE", telegram: "Telegram", instagram: "Instagram DM", rcs: "RCS",
+  youtube: "YouTube",
 };
 
 const CHANNEL_TYPES = [
@@ -41,8 +43,30 @@ export default function DevicesPage() {
   const [channelType, setChannelType] = useState("none"); // "none" = 일반 소프트웨어
   const [accountId, setAccountId] = useState("");
   const utils = trpc.useUtils();
+  const { user } = useAuth();
 
   const { data: devices, isLoading } = trpc.mip.devices.list.useQuery();
+
+  // YouTube OAuth 콜백 처리 (URL 파라미터)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ytAuth = params.get("youtube_auth");
+    if (ytAuth === "success") {
+      const channel = params.get("channel");
+      const title = params.get("title");
+      toast.success(`YouTube 인증 완료! 채널: ${title || channel || "연결됨"}`);
+      utils.mip.devices.list.invalidate();
+      // URL 정리
+      window.history.replaceState({}, "", window.location.pathname);
+    } else if (ytAuth === "denied") {
+      toast.error("YouTube 인증이 거부되었습니다.");
+      window.history.replaceState({}, "", window.location.pathname);
+    } else if (ytAuth === "error") {
+      const msg = params.get("message");
+      toast.error(`YouTube 인증 실패: ${msg || "알 수 없는 오류"}`);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
 
   const registerMutation = trpc.mip.devices.register.useMutation({
     onSuccess: (data) => {
@@ -82,6 +106,25 @@ export default function DevicesPage() {
       } as any);
     } else {
       registerMutation.mutate(form as any);
+    }
+  }
+
+  async function handleYouTubeAuth(channelId: string) {
+    if (!user) {
+      toast.error("로그인이 필요합니다.");
+      return;
+    }
+    try {
+      const origin = window.location.origin;
+      const res = await fetch(`/api/youtube/auth?channelId=${channelId}&userId=${user.id}&origin=${encodeURIComponent(origin)}`);
+      const data = await res.json();
+      if (data.authUrl) {
+        window.location.href = data.authUrl;
+      } else {
+        toast.error("인증 URL 생성 실패");
+      }
+    } catch (err) {
+      toast.error("YouTube 인증 요청 실패");
     }
   }
 
@@ -206,7 +249,7 @@ export default function DevicesPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {devices.map((device) => {
-            const cfg = STATUS_CONFIG[device.status] || STATUS_CONFIG.pending;
+            const cfg = STATUS_CONFIG[device.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.pending;
             const Icon = cfg.icon;
             const isDeviceChannel = isChannelType(device.deviceType);
             return (
@@ -219,7 +262,7 @@ export default function DevicesPage() {
                       </div>
                       <div>
                         <p className="text-sm font-medium text-foreground">{device.deviceName}</p>
-                        <p className="text-xs text-muted-foreground">{DEVICE_TYPE_LABELS[device.deviceType]}</p>
+                        <p className="text-xs text-muted-foreground">{DEVICE_TYPE_LABELS[device.deviceType] || device.deviceType}</p>
                       </div>
                     </div>
                     <div className={`flex items-center gap-1 ${cfg.color}`}>
@@ -243,9 +286,27 @@ export default function DevicesPage() {
                     <div className="text-xs text-muted-foreground">
                       등록: {new Date(device.createdAt).toLocaleDateString("ko-KR")}
                     </div>
+                    {/* YouTube OAuth 상태 표시 */}
+                    {device.deviceType === "youtube" && (device as any).youtubeAuth && (
+                      <div className="flex items-center gap-1 text-xs text-emerald-400">
+                        <CheckCircle className="w-3 h-3" />
+                        <span>YouTube 인증됨: {(device as any).youtubeAuth.channelTitle || (device as any).youtubeAuth.channelId}</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex gap-2">
+                    {/* YouTube 인증 버튼 */}
+                    {device.deviceType === "youtube" && (device as any).channelId && !(device as any).youtubeAuth && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 text-xs h-7 text-red-500 border-red-500/30 hover:bg-red-500/10"
+                        onClick={() => handleYouTubeAuth((device as any).channelId)}
+                      >
+                        <ExternalLink className="w-3 h-3 mr-1" />YouTube 인증
+                      </Button>
+                    )}
                     {device.status === "pending" && (
                       <Button
                         size="sm"

@@ -6,8 +6,8 @@
  */
 
 import { getDb } from "../db";
-import { mipBlockActions } from "../../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { mipBlockActions, mipChannels } from "../../drizzle/schema";
+import { eq, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
 // ─── 타입 정의 ──────────────────────────────────────────────────────────────
@@ -460,10 +460,44 @@ export async function executeBlock(request: BlockRequest): Promise<BlockResult> 
     return { success: false, actionId, blockAction, executedAt: now, error: `Unsupported channel type: ${request.channelType}` };
   }
 
-  // 연결 설정 파싱
+  // 연결 설정 파싱 — request에 없으면 mipChannels에서 OAuth 토큰 조회
   let config: any = {};
   if (request.connectionConfig) {
     try { config = JSON.parse(request.connectionConfig); } catch { /* 빈 config 사용 */ }
+  } else {
+    // mipChannels에서 connectionConfig 자동 조회 (OAuth 토큰 등)
+    try {
+      const channels = await db.select().from(mipChannels).where(
+        and(eq(mipChannels.channelType, request.channelType as any))
+      ).limit(5);
+      // deviceId로 매칭되는 채널 찾기 (또는 첫 번째 사용)
+      const matched = channels.find(ch => ch.connectionConfig) || null;
+      if (matched?.connectionConfig) {
+        const parsed = JSON.parse(matched.connectionConfig);
+        // YouTube OAuth 토큰이 있으면 만료 확인 후 자동 갱신
+        if (parsed.oauth?.accessToken) {
+          let accessToken = parsed.oauth.accessToken;
+          // 토큰 만료 확인 (5분 여유)
+          if (parsed.oauth.expiresAt && Date.now() > parsed.oauth.expiresAt - 5 * 60 * 1000) {
+            try {
+              const { refreshAccessToken } = await import("../youtube/youtube-oauth");
+              const refreshed = await refreshAccessToken(parsed.oauth.refreshToken);
+              accessToken = refreshed.accessToken;
+              // DB에 갱신된 토큰 저장
+              parsed.oauth.accessToken = refreshed.accessToken;
+              parsed.oauth.expiresAt = refreshed.expiresAt;
+              await db.update(mipChannels).set({
+                connectionConfig: JSON.stringify(parsed),
+                updatedAt: Date.now(),
+              }).where(eq(mipChannels.id, matched.id));
+            } catch { /* 갱신 실패 시 기존 토큰 사용 */ }
+          }
+          config = { accessToken };
+        } else {
+          config = parsed;
+        }
+      }
+    } catch { /* 조회 실패 시 빈 config */ }
   }
 
   // 차단 실행

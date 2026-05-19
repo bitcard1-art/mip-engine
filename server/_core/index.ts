@@ -13,6 +13,7 @@ import { startDlqRetryScheduler } from "../soma/dlq-scheduler";
 import loreRouter from "../lore/lore-router";
 import { startLoreDlqRetryScheduler } from "../lore/dlq-scheduler";
 import hangyeolRouter from "../hangyeol/hangyeol-router";
+import youtubeRouter from "../youtube/youtube-router";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -59,6 +60,8 @@ async function startServer() {
   startLoreDlqRetryScheduler();
   // 한결(Hangyeol) ↔ MIP 연동 라우터
   app.use("/api/hangyeol", hangyeolRouter);
+  // YouTube OAuth 라우터
+  app.use("/api/youtube", youtubeRouter);
   // tRPC API
   app.use(
     "/api/trpc",

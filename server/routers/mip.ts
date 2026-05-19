@@ -18,6 +18,7 @@ import {
   somaWebhookEvents,
   lorePackageEvents,
   mipPackageRefreshRequests,
+  mipChannels,
 } from "../../drizzle/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { receiveAndValidatePackage } from "../mip/package-receiver";
@@ -155,13 +156,58 @@ export const mipRouter = router({
           createdAt: now,
         });
 
-        return { deviceId, message: "디바이스가 등록되었습니다. DID 신뢰 검증 후 활성화됩니다." };
+        // 채널 타입이면 mip_channels에도 자동 등록
+        const channelTypes = ["sms", "kakaotalk", "whatsapp", "line", "telegram", "instagram", "rcs", "youtube"];
+        let channelId: string | undefined;
+        if (channelTypes.includes(input.deviceType)) {
+          channelId = nanoid();
+          const accountId = input.did.replace(`did:channel:${input.deviceType}:`, "");
+          await db.insert(mipChannels).values({
+            id: channelId,
+            channelType: input.deviceType as any,
+            protocol: "webhook",
+            accountId,
+            displayName: input.deviceName,
+            protectionLevel: "full",
+            status: "pending_verification",
+            connectionConfig: null,
+            totalChecked: 0,
+            totalBlocked: 0,
+            ownerId: String(ctx.user.id),
+            createdAt: now,
+            updatedAt: now,
+          });
+        }
+
+        return { deviceId, channelId, message: "디바이스가 등록되었습니다. DID 신뢰 검증 후 활성화됩니다." };
       }),
 
     list: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return [];
-      return db.select().from(mipDevices).where(eq(mipDevices.userId, String(ctx.user.id))).orderBy(desc(mipDevices.createdAt));
+      const devices = await db.select().from(mipDevices).where(eq(mipDevices.userId, String(ctx.user.id))).orderBy(desc(mipDevices.createdAt));
+      // 채널 타입 디바이스의 경우 mip_channels에서 OAuth 상태 확인
+      const channelTypeList = ["sms", "kakaotalk", "whatsapp", "line", "telegram", "instagram", "rcs", "youtube"];
+      const enriched = await Promise.all(devices.map(async (device) => {
+        if (!channelTypeList.includes(device.deviceType)) return { ...device, channelId: null, youtubeAuth: null };
+        const accountId = device.did.replace(`did:channel:${device.deviceType}:`, "");
+        const channels = await db.select().from(mipChannels).where(
+          and(eq(mipChannels.ownerId, String(ctx.user.id)), eq(mipChannels.accountId, accountId), eq(mipChannels.channelType, device.deviceType as any))
+        ).limit(1);
+        const ch = channels[0];
+        if (!ch) return { ...device, channelId: null, youtubeAuth: null };
+        let youtubeAuth: { channelId?: string; channelTitle?: string; authenticated: boolean } | null = null;
+        if (device.deviceType === "youtube" && ch.connectionConfig) {
+          try {
+            const cfg = JSON.parse(ch.connectionConfig);
+            if (cfg.oauth) {
+              youtubeAuth = { channelId: cfg.oauth.channelId, channelTitle: cfg.oauth.channelTitle, authenticated: true };
+            }
+          } catch {}
+        }
+        return { ...device, channelId: ch.id, youtubeAuth };
+      }));
+      return enriched;
     }),
 
     listAll: protectedProcedure.query(async () => {

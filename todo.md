@@ -286,3 +286,12 @@
 - [x] channel/inbound에서 youtube 채널 타입 인식
 - [x] DevicesPage UI 소프트웨어 하위 드롭다운에 YouTube 옵션 추가
 - [x] Vitest 테스트 (YouTube 어댑터 차단/해제) — 20개 통과
+
+## Phase 32: YouTube OAuth 2.0 인증 연동
+- [x] 환경변수 등록 (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET)
+- [x] YouTube OAuth 백엔드 엔드포인트 (인증 URL 생성 + 콜백 처리 + 토큰 저장)
+- [x] DB에 OAuth 토큰 저장 (mip_channels.connectionConfig에 access_token/refresh_token)
+- [x] 프론트엔드 YouTube 인증 버튼 (디바이스 관리 페이지)
+- [x] channel-blocker에서 저장된 OAuth 토큰으로 실제 YouTube API 호출
+- [x] 토큰 만료 시 자동 갱신 (refresh_token 사용)
+- [x] Vitest 테스트 (8개 통과)
