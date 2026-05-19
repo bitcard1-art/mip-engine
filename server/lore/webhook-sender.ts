@@ -165,8 +165,21 @@ export async function callLoreApi(
       signal: AbortSignal.timeout(15_000),
     });
 
-    const data = res.ok ? await res.json().catch(() => undefined) : undefined;
-    return { ok: res.ok, status: res.status, data };
+    if (!res.ok) {
+      return { ok: false, status: res.status, data: undefined };
+    }
+    // JSON 파싱 실패 시 (HTML 반환 등) ok: false로 처리
+    const contentType = res.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) {
+      console.error(`[LoreApi] 비정상 응답: Content-Type=${contentType}, status=${res.status}`);
+      return { ok: false, status: res.status, data: undefined };
+    }
+    const data = await res.json().catch(() => undefined);
+    if (data === undefined) {
+      console.error(`[LoreApi] JSON 파싱 실패: status=${res.status}`);
+      return { ok: false, status: res.status, data: undefined };
+    }
+    return { ok: true, status: res.status, data };
   } catch (err) {
     console.error(`[LoreApi] 호출 실패: ${path}`, err);
     return { ok: false, status: 0 };
