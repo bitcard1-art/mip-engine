@@ -3,10 +3,10 @@ import { trpc } from "@/lib/trpc";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Cpu, Plus, CheckCircle, XCircle, Clock, ShieldOff, RefreshCw } from "lucide-react";
+import { Cpu, Plus, CheckCircle, XCircle, Clock, ShieldOff, RefreshCw, MessageSquare, Phone } from "lucide-react";
 import { toast } from "sonner";
 
 const STATUS_CONFIG = {
@@ -22,9 +22,23 @@ const DEVICE_TYPE_LABELS: Record<string, string> = {
   line: "LINE", telegram: "Telegram", instagram: "Instagram DM", rcs: "RCS",
 };
 
+const CHANNEL_TYPES = [
+  { value: "sms", label: "SMS/MMS", icon: "📱", placeholder: "전화번호 (예: 01012345678)" },
+  { value: "kakaotalk", label: "카카오톡", icon: "💬", placeholder: "전화번호 (예: 01012345678)" },
+  { value: "whatsapp", label: "WhatsApp", icon: "📞", placeholder: "전화번호 (예: +821012345678)" },
+  { value: "line", label: "LINE", icon: "🟢", placeholder: "LINE ID" },
+  { value: "telegram", label: "Telegram", icon: "✈️", placeholder: "Telegram ID (예: @username)" },
+  { value: "instagram", label: "Instagram DM", icon: "📷", placeholder: "Instagram ID (예: @username)" },
+  { value: "rcs", label: "RCS", icon: "💎", placeholder: "전화번호 (예: 01012345678)" },
+];
+
+const isChannelType = (type: string) => CHANNEL_TYPES.some((c) => c.value === type);
+
 export default function DevicesPage() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ deviceName: "", deviceType: "software" as string, did: "" });
+  const [channelType, setChannelType] = useState("none"); // "none" = 일반 소프트웨어
+  const [accountId, setAccountId] = useState("");
   const utils = trpc.useUtils();
 
   const { data: devices, isLoading } = trpc.mip.devices.list.useQuery();
@@ -34,7 +48,7 @@ export default function DevicesPage() {
       toast.success(`디바이스 등록 완료: ${data.deviceId}`);
       utils.mip.devices.list.invalidate();
       setOpen(false);
-      setForm({ deviceName: "", deviceType: "software", did: "" });
+      resetForm();
     },
     onError: (e) => toast.error(`등록 실패: ${e.message}`),
   });
@@ -50,6 +64,30 @@ export default function DevicesPage() {
     onSuccess: () => { toast.success("디바이스 해지 완료"); utils.mip.devices.list.invalidate(); },
   });
 
+  function resetForm() {
+    setForm({ deviceName: "", deviceType: "software", did: "" });
+    setChannelType("none");
+    setAccountId("");
+  }
+
+  function handleRegister() {
+    if (form.deviceType === "software" && channelType !== "none") {
+      // 채널 타입: accountId로 DID 자동 생성
+      const did = `did:channel:${channelType}:${accountId}`;
+      registerMutation.mutate({
+        deviceName: form.deviceName,
+        deviceType: channelType,
+        did,
+      } as any);
+    } else {
+      registerMutation.mutate(form as any);
+    }
+  }
+
+  const isChannel = form.deviceType === "software" && channelType !== "none";
+  const selectedChannel = CHANNEL_TYPES.find((c) => c.value === channelType);
+  const canSubmit = form.deviceName && (isChannel ? accountId : form.did);
+
   return (
     <MIPLayout title="디바이스 관리">
       <div className="flex items-center justify-between mb-6">
@@ -57,7 +95,7 @@ export default function DevicesPage() {
           <h2 className="text-lg font-semibold text-foreground">등록된 디바이스</h2>
           <p className="text-sm text-muted-foreground">DID 기반 신뢰 검증 및 Runtime 연결 관리</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
           <DialogTrigger asChild>
             <Button size="sm" className="gap-2"><Plus className="w-4 h-4" />디바이스 등록</Button>
           </DialogTrigger>
@@ -69,7 +107,7 @@ export default function DevicesPage() {
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">디바이스 이름</label>
                 <Input
-                  placeholder="예: Humanoid-Alpha-01"
+                  placeholder="예: 휴머노이드-알파-01"
                   value={form.deviceName}
                   onChange={(e) => setForm({ ...form, deviceName: e.target.value })}
                   className="bg-input border-border text-foreground"
@@ -77,7 +115,7 @@ export default function DevicesPage() {
               </div>
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">디바이스 유형</label>
-                <Select value={form.deviceType} onValueChange={(v) => setForm({ ...form, deviceType: v as any })}>
+                <Select value={form.deviceType} onValueChange={(v) => { setForm({ ...form, deviceType: v }); setChannelType("none"); setAccountId(""); }}>
                   <SelectTrigger className="bg-input border-border text-foreground">
                     <SelectValue />
                   </SelectTrigger>
@@ -85,29 +123,65 @@ export default function DevicesPage() {
                     <SelectItem value="humanoid">🤖 휴머노이드</SelectItem>
                     <SelectItem value="iot">📡 IoT</SelectItem>
                     <SelectItem value="software">💻 소프트웨어</SelectItem>
-                    <SelectItem value="sms">📱 SMS/MMS</SelectItem>
-                    <SelectItem value="kakaotalk">💬 카카오톡</SelectItem>
-                    <SelectItem value="whatsapp">📞 WhatsApp</SelectItem>
-                    <SelectItem value="line">🟢 LINE</SelectItem>
-                    <SelectItem value="telegram">✈️ Telegram</SelectItem>
-                    <SelectItem value="instagram">📷 Instagram DM</SelectItem>
-                    <SelectItem value="rcs">💎 RCS</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">DID (Decentralized Identifier)</label>
-                <Input
-                  placeholder="did:soma:..."
-                  value={form.did}
-                  onChange={(e) => setForm({ ...form, did: e.target.value })}
-                  className="bg-input border-border text-foreground font-mono text-xs"
-                />
-              </div>
+
+              {/* 소프트웨어 선택 시 채널 하위 드롭다운 */}
+              {form.deviceType === "software" && (
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">채널 연결 (선택)</label>
+                  <Select value={channelType} onValueChange={(v) => { setChannelType(v); setAccountId(""); }}>
+                    <SelectTrigger className="bg-input border-border text-foreground">
+                      <SelectValue placeholder="채널 선택..." />
+                    </SelectTrigger>
+                    <SelectContent className="bg-card border-border">
+                      <SelectItem value="none">— 일반 소프트웨어 (채널 없음)</SelectItem>
+                      {CHANNEL_TYPES.map((ch) => (
+                        <SelectItem key={ch.value} value={ch.value}>
+                          {ch.icon} {ch.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* 채널 선택 시: 전화번호/계정 ID 입력 */}
+              {isChannel && selectedChannel && (
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">
+                    {selectedChannel.label} 계정 정보
+                  </label>
+                  <Input
+                    placeholder={selectedChannel.placeholder}
+                    value={accountId}
+                    onChange={(e) => setAccountId(e.target.value)}
+                    className="bg-input border-border text-foreground"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    DID가 자동 생성됩니다 (did:channel:{channelType}:계정)
+                  </p>
+                </div>
+              )}
+
+              {/* 일반 디바이스: DID 입력 */}
+              {!isChannel && (
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">DID (Decentralized Identifier)</label>
+                  <Input
+                    placeholder="did:soma:..."
+                    value={form.did}
+                    onChange={(e) => setForm({ ...form, did: e.target.value })}
+                    className="bg-input border-border text-foreground font-mono text-xs"
+                  />
+                </div>
+              )}
+
               <Button
                 className="w-full"
-                onClick={() => registerMutation.mutate(form as any)}
-                disabled={!form.deviceName || !form.did || registerMutation.isPending}
+                onClick={handleRegister}
+                disabled={!canSubmit || registerMutation.isPending}
               >
                 {registerMutation.isPending ? "등록 중..." : "등록"}
               </Button>
@@ -133,13 +207,14 @@ export default function DevicesPage() {
           {devices.map((device) => {
             const cfg = STATUS_CONFIG[device.status] || STATUS_CONFIG.pending;
             const Icon = cfg.icon;
+            const isDeviceChannel = isChannelType(device.deviceType);
             return (
               <Card key={device.id} className="bg-card border-border hover:border-primary/30 transition-colors">
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <Cpu className="w-4 h-4 text-primary" />
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isDeviceChannel ? "bg-blue-500/10" : "bg-primary/10"}`}>
+                        {isDeviceChannel ? <MessageSquare className="w-4 h-4 text-blue-400" /> : <Cpu className="w-4 h-4 text-primary" />}
                       </div>
                       <div>
                         <p className="text-sm font-medium text-foreground">{device.deviceName}</p>
@@ -162,7 +237,7 @@ export default function DevicesPage() {
                       </div>
                     </div>
                     <div className="text-xs text-muted-foreground font-mono truncate">
-                      {device.did.substring(0, 40)}...
+                      {device.did.length > 40 ? `${device.did.substring(0, 40)}...` : device.did}
                     </div>
                     <div className="text-xs text-muted-foreground">
                       등록: {new Date(device.createdAt).toLocaleDateString("ko-KR")}

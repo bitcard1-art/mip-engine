@@ -260,3 +260,10 @@
 - [x] 기존 채널 관련 tRPC 프로시저/페이지 유지 (채널별 세부 설정용)
 - [x] /channels 라우트 및 ChannelsPage 제거 (디바이스 통합으로 불필요)
 - [x] mip.channels tRPC 프로시저 제거
+
+## Phase 29: 디바이스 등록 폼 — 소프트웨어 선택 시 채널 하위 드롭다운
+
+- [x] 디바이스 유형 드롭다운에서 채널 타입(sms, kakaotalk 등) 직접 노출 제거
+- [x] 소프트웨어 선택 시 2차 드롭다운 표시: 일반 / SMS / 카카오톡 / WhatsApp / LINE / Telegram / Instagram DM / RCS
+- [x] 채널 선택 시 DID 대신 전화번호/계정 ID 입력 필드로 전환 (DID 자동 생성)
+- [x] 등록 시 실제 deviceType에 채널 타입 저장 (기존 백엔드 호환)
