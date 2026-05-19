@@ -231,3 +231,12 @@
 - [x] message/check에서 channelId 입력을 받아 등록된 채널 존재/상태/보호수준 검증 후 검사 수행
 - [x] channelId 미존재/비활성/disabled 시 403 CHANNEL_NOT_ALLOWED 에러 처리
 - [x] channelId 연동 Vitest 테스트 추가 (19개 통과: 등록 채널 허용, 미등록 403, disconnected 403, 레거시 호환)
+
+## Phase 27: 채널 관리 UI 페이지
+
+- [x] client/src/pages/ChannelsPage.tsx — 채널 목록/등록/해제/설정 변경 UI
+- [x] App.tsx에 /channels 라우트 추가
+- [x] 사이드바에 "채널 관리" 메뉴 항목 추가
+- [x] 채널 등록 폼 (타입 선택, 계정 ID, 표시 이름, 보호 수준)
+- [x] 채널 목록 표시 (상태 배지, 보호 수준, 통계)
+- [x] 채널 해제/설정 변경 기능

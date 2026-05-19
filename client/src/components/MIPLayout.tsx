@@ -5,7 +5,7 @@ import {
   Shield, Cpu, Package, Activity, Terminal, BookOpen,
   Link2, ChevronRight, LogOut, User, Menu, X, AlertTriangle,
   Zap, Brain, RotateCcw, ShieldCheck, Anchor, ScrollText,
-  FlaskConical, FileText
+  FlaskConical, FileText, MessageSquare
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -51,6 +51,12 @@ const NAV_GROUPS: NavGroup[] = [
       { path: "/audit", label: "감사 체인", icon: ScrollText },
       { path: "/isolation-layer", label: "§14 Isolation Layer", icon: ShieldCheck },
       { path: "/ledger-anchoring", label: "§14.6 Ledger Anchoring", icon: Anchor },
+    ],
+  },
+  {
+    label: "채널 관리",
+    items: [
+      { path: "/channels", label: "채널 (SNS/메신저)", icon: MessageSquare },
     ],
   },
   {

@@ -59,6 +59,16 @@ import {
   getLedgerAnchorStats,
   retryLedgerDlq,
 } from "../mip/ledger-anchoring";
+import {
+  registerChannel,
+  disconnectChannel,
+  listChannels,
+  updateChannelSettings,
+  getChannelStats,
+  CHANNEL_INFO,
+  type ChannelType,
+  type ProtectionLevel,
+} from "../mip/channel-manager";
 
 // ─── Zod 스키마 ───────────────────────────────────────────────────────────────
 
@@ -927,6 +937,69 @@ export const mipRouter = router({
           getLedgerAnchors({ limit: 10 }),
         ]);
         return { stats, recentAnchors };
+      }),
+  }),
+
+  // ─── 채널 관리 ────────────────────────────────────────────────────────────────
+  channels: router({
+    list: protectedProcedure
+      .input(z.object({
+        channelType: z.enum(["sms", "kakaotalk", "whatsapp", "line", "telegram", "instagram", "rcs"]).optional(),
+        status: z.enum(["active", "disconnected", "suspended", "pending_verification"]).optional(),
+      }).optional())
+      .query(async ({ ctx, input }) => {
+        return listChannels({
+          ownerId: ctx.user.openId,
+          channelType: input?.channelType as ChannelType | undefined,
+          status: input?.status,
+        });
+      }),
+
+    register: protectedProcedure
+      .input(z.object({
+        channelType: z.enum(["sms", "kakaotalk", "whatsapp", "line", "telegram", "instagram", "rcs"]),
+        accountId: z.string().min(1),
+        displayName: z.string().optional(),
+        protectionLevel: z.enum(["full", "monitor_only", "disabled"]).default("full"),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const channel = await registerChannel({
+          channelType: input.channelType as ChannelType,
+          accountId: input.accountId,
+          displayName: input.displayName,
+          protectionLevel: input.protectionLevel as ProtectionLevel,
+          ownerId: ctx.user.openId,
+        });
+        return channel;
+      }),
+
+    disconnect: protectedProcedure
+      .input(z.object({ channelId: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        return disconnectChannel(input.channelId, ctx.user.openId);
+      }),
+
+    updateSettings: protectedProcedure
+      .input(z.object({
+        channelId: z.string(),
+        protectionLevel: z.enum(["full", "monitor_only", "disabled"]).optional(),
+        displayName: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return updateChannelSettings(input.channelId, ctx.user.openId, {
+          protectionLevel: input.protectionLevel as ProtectionLevel | undefined,
+          displayName: input.displayName,
+        });
+      }),
+
+    stats: protectedProcedure
+      .query(async ({ ctx }) => {
+        return getChannelStats(ctx.user.openId);
+      }),
+
+    types: protectedProcedure
+      .query(async () => {
+        return CHANNEL_INFO;
       }),
   }),
 });
