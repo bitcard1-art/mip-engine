@@ -131,6 +131,46 @@ const ISOLATION_VIOLATION_PATTERNS: Array<{
     ],
     severity: "warning",
   },
+  // IoT/디바이스 전용 차단 패턴
+  {
+    type: "bypass_isolation",
+    patterns: [
+      /OVERRIDE_SAFETY/i,
+      /override_safety/i,
+      /force_override/i,
+      /bypass_safety/i,
+    ],
+    severity: "critical",
+  },
+  {
+    type: "runtime_hijacking",
+    patterns: [
+      /export_data/i,
+      /exfiltrate/i,
+      /dump_memory/i,
+      /send_to_external/i,
+    ],
+    severity: "critical",
+  },
+  {
+    type: "core_identity_access",
+    patterns: [
+      /modify_core/i,
+      /alter_firmware/i,
+      /flash_rom/i,
+      /reset_factory.*force/i,
+    ],
+    severity: "emergency",
+  },
+  {
+    type: "bypass_isolation",
+    patterns: [
+      /user_type=child.*time=(?:0[0-5]|2[2-3]):/i,
+      /KIDS_CHANNEL.*time=(?:0[0-5]|2[2-3])/i,
+      /time=0[0-5]:\d{2}.*user_type=child/i,
+    ],
+    severity: "critical",
+  },
 ];
 
 // ─── §14.2.3 + §14.1 명령 검사 (Bounded Permeable Isolation) ─────────────────

@@ -202,3 +202,14 @@
 - [x] 한결 API: POST /api/hangyeol/message/:id/reject — 보류 메시지 차단
 - [x] server/mip/message-safety.test.ts — 피싱 판정 엔진 테스트 (14개 통과)
 - [x] 헬스체크 엔드포인트 목록 업데이트
+
+## Phase 25: 삼성 에어컨/TV Mock API (로컬 모의 테스트)
+
+- [x] server/hangyeol/mock-samsung-test.ts — Mock 시나리오 실행 스크립트 (디바이스 등록→이식→명령 검증→감사 이력)
+- [x] server/hangyeol/mock-samsung-test.test.ts — Mock 시나리오 Vitest 테스트 (19개 통과)
+- [x] 삼성 에어컨(AF17B6474WZN) 등록 + 이식 + checkCommand 허용/차단 4개 시나리오 검증
+- [x] 삼성 TV(KQ65QC88AF) 등록 + 이식 + checkCommand 허용/차단 4개 시나리오 검증
+- [x] 감사 이력 조회 및 결과 확인
+- [x] IoT 디바이스 전용 차단 패턴 추가 (OVERRIDE_SAFETY, export_data, modify_core, 어린이 심야 시청)
+- [x] 메시지 안심 피싱 판정 Mock 테스트 통합
+- [x] Vitest 19개 테스트 케이스 전체 통과
