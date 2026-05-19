@@ -595,3 +595,40 @@ export const mipMessageChecks = mysqlTable("mip_message_checks", {
 });
 export type MipMessageCheck = typeof mipMessageChecks.$inferSelect;
 export type InsertMipMessageCheck = typeof mipMessageChecks.$inferInsert;
+
+
+// ─── MIP Channels: SNS/메신저 채널 관리 ─────────────────────────────────────
+// 디바이스(물리 기기)와 분리된 소프트웨어 서비스 채널 등록/관리
+export const mipChannels = mysqlTable("mip_channels", {
+  id: varchar("id", { length: 36 }).primaryKey(),              // nanoid
+  // 채널 기본 정보
+  channelType: mysqlEnum("channel_type", [
+    "sms", "kakaotalk", "whatsapp", "line", "telegram", "instagram", "rcs"
+  ]).notNull(),
+  protocol: mysqlEnum("protocol", ["websocket", "webhook", "polling"]).default("websocket").notNull(),
+  // 계정 정보
+  accountId: varchar("account_id", { length: 128 }).notNull(),  // 전화번호 또는 계정 ID
+  displayName: varchar("display_name", { length: 128 }),        // 표시 이름
+  accountMetadata: text("account_metadata"),                    // JSON: 추가 계정 정보
+  // 보호 설정
+  protectionLevel: mysqlEnum("protection_level", [
+    "full", "monitor_only", "disabled"
+  ]).default("full").notNull(),
+  // 상태
+  status: mysqlEnum("status", [
+    "active", "disconnected", "suspended", "pending_verification"
+  ]).default("pending_verification").notNull(),
+  // 연결 정보
+  connectionConfig: text("connection_config"),                  // JSON: API 키, 웹훅 URL 등 (암호화)
+  lastMessageAt: bigint("last_message_at", { mode: "number" }),
+  totalChecked: int("total_checked").default(0).notNull(),     // 총 검사 건수
+  totalBlocked: int("total_blocked").default(0).notNull(),     // 총 차단 건수
+  // 소유자
+  ownerId: varchar("owner_id", { length: 64 }).notNull(),      // 사용자 openId
+  // 타임스탬프
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  disconnectedAt: bigint("disconnected_at", { mode: "number" }),
+});
+export type MipChannel = typeof mipChannels.$inferSelect;
+export type InsertMipChannel = typeof mipChannels.$inferInsert;

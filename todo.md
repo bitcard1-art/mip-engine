@@ -213,3 +213,21 @@
 - [x] IoT 디바이스 전용 차단 패턴 추가 (OVERRIDE_SAFETY, export_data, modify_core, 어린이 심야 시청)
 - [x] 메시지 안심 피싱 판정 Mock 테스트 통합
 - [x] Vitest 19개 테스트 케이스 전체 통과
+
+## Phase 26: 채널(Channel) 관리 시스템 — SNS/메신저 분리 등록
+
+- [x] DB 스키마: mip_channels 테이블 추가 (채널 타입, 계정 정보, 보호 수준, 상태)
+- [x] server/mip/channel-manager.ts — 채널 등록/해제/목록/설정 변경 로직
+- [x] 한결 API: POST /api/hangyeol/channels/register — 채널 등록
+- [x] 한결 API: POST /api/hangyeol/channels/:id/disconnect — 채널 해제
+- [x] 한결 API: GET /api/hangyeol/channels/list — 채널 목록 조회
+- [x] 한결 API: PUT /api/hangyeol/channels/:id/settings — 보호 수준 변경
+- [x] 채널 통계 API: GET /api/hangyeol/channels/stats — 채널 통계 조회
+- [x] 채널 타입 API: GET /api/hangyeol/channels/types — 지원 채널 타입 정보
+- [x] server/mip/channel-manager.test.ts — 채널 관리 Vitest 테스트 (15개 통과)
+
+## Phase 26-b: 메시지 검사 채널 연동
+
+- [x] message/check에서 channelId 입력을 받아 등록된 채널 존재/상태/보호수준 검증 후 검사 수행
+- [x] channelId 미존재/비활성/disabled 시 403 CHANNEL_NOT_ALLOWED 에러 처리
+- [x] channelId 연동 Vitest 테스트 추가 (19개 통과: 등록 채널 허용, 미등록 403, disconnected 403, 레거시 호환)

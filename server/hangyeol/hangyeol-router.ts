@@ -35,6 +35,18 @@ import {
   getMessageStats,
   type MessageCheckInput,
 } from "../mip/message-safety";
+import {
+  registerChannel,
+  disconnectChannel,
+  listChannels,
+  updateChannelSettings,
+  getChannelStats,
+  getChannelProtectionLevel,
+  incrementCheckCount,
+  CHANNEL_INFO,
+  type RegisterChannelInput,
+  type UpdateChannelSettingsInput,
+} from "../mip/channel-manager";
 
 const hangyeolRouter = Router();
 
@@ -347,8 +359,9 @@ hangyeolRouter.post(
   hangyeolHmacMiddleware,
   async (req, res) => {
     try {
-      const { channel, senderNumber, senderName, messageContent, messageUrl, sessionId, deviceId } = req.body as {
+      const { channel, channelId, senderNumber, senderName, messageContent, messageUrl, sessionId, deviceId } = req.body as {
         channel: MessageCheckInput["channel"];
+        channelId?: string;
         senderNumber?: string;
         senderName?: string;
         messageContent: string;
@@ -365,6 +378,19 @@ hangyeolRouter.post(
         return;
       }
 
+      // channelId가 제공된 경우 채널 존재/상태/보호수준 검증
+      if (channelId) {
+        const protection = await getChannelProtectionLevel(channelId);
+        if (!protection.allowed) {
+          res.status(403).json({
+            error: "CHANNEL_NOT_ALLOWED",
+            message: protection.error || "채널이 검사를 허용하지 않습니다.",
+            protectionLevel: protection.protectionLevel,
+          });
+          return;
+        }
+      }
+
       const result = await checkMessageSafety({
         userId: HANGYEOL_SERVICE_USER_ID,
         sessionId,
@@ -375,6 +401,12 @@ hangyeolRouter.post(
         messageContent,
         messageUrl,
       });
+
+      // channelId가 있으면 검사 카운터 증가
+      if (channelId) {
+        const blocked = result.verdict === "blocked" || result.verdict === "phishing";
+        await incrementCheckCount(channelId, blocked);
+      }
 
       // 차단/피싱이면 403, 나머지 200
       const statusCode = result.verdict === "blocked" || result.verdict === "phishing" ? 403 : 200;
@@ -485,8 +517,153 @@ hangyeolRouter.get("/health", (_req, res) => {
       "GET  /api/hangyeol/message/history",
       "POST /api/hangyeol/message/:id/approve",
       "POST /api/hangyeol/message/:id/reject",
+      "POST /api/hangyeol/channels/register",
+      "POST /api/hangyeol/channels/:id/disconnect",
+      "GET  /api/hangyeol/channels/list",
+      "PUT  /api/hangyeol/channels/:id/settings",
+      "GET  /api/hangyeol/channels/stats",
+      "GET  /api/hangyeol/channels/types",
     ],
   });
 });
+
+// ─── 9. 채널 등록 ───────────────────────────────────────────────────────────
+// POST /api/hangyeol/channels/register
+hangyeolRouter.post(
+  "/channels/register",
+  hangyeolHmacMiddleware,
+  async (req, res) => {
+    try {
+      const { channelType, protocol, accountId, displayName, accountMetadata, protectionLevel, connectionConfig, ownerId } = req.body;
+
+      if (!channelType || !accountId) {
+        return res.status(400).json({ error: "channelType과 accountId는 필수입니다." });
+      }
+
+      const validTypes = ["sms", "kakaotalk", "whatsapp", "line", "telegram", "instagram", "rcs"];
+      if (!validTypes.includes(channelType)) {
+        return res.status(400).json({ error: `유효하지 않은 channelType: ${channelType}` });
+      }
+
+      const input: RegisterChannelInput = {
+        channelType,
+        protocol,
+        accountId,
+        displayName,
+        accountMetadata,
+        protectionLevel,
+        connectionConfig,
+        ownerId: ownerId || HANGYEOL_SERVICE_USER_ID,
+      };
+
+      const channel = await registerChannel(input);
+      res.status(201).json({ success: true, channel });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || "채널 등록 실패" });
+    }
+  }
+);
+
+// ─── 10. 채널 해제 ──────────────────────────────────────────────────────────
+// POST /api/hangyeol/channels/:id/disconnect
+hangyeolRouter.post(
+  "/channels/:id/disconnect",
+  hangyeolHmacMiddleware,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { ownerId } = req.body;
+      const result = await disconnectChannel(id, ownerId || HANGYEOL_SERVICE_USER_ID);
+
+      if (!result.success) {
+        return res.status(404).json({ error: result.error });
+      }
+
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || "채널 해제 실패" });
+    }
+  }
+);
+
+// ─── 11. 채널 목록 조회 ─────────────────────────────────────────────────────
+// GET /api/hangyeol/channels/list
+hangyeolRouter.get(
+  "/channels/list",
+  hangyeolHmacMiddleware,
+  async (req, res) => {
+    try {
+      const { ownerId, channelType, status } = req.query as {
+        ownerId?: string;
+        channelType?: string;
+        status?: string;
+      };
+
+      const channels = await listChannels({
+        ownerId: ownerId || HANGYEOL_SERVICE_USER_ID,
+        channelType: channelType as any,
+        status: status as any,
+      });
+
+      res.json({ success: true, channels });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || "채널 목록 조회 실패" });
+    }
+  }
+);
+
+// ─── 12. 채널 설정 변경 ─────────────────────────────────────────────────────
+// PUT /api/hangyeol/channels/:id/settings
+hangyeolRouter.put(
+  "/channels/:id/settings",
+  hangyeolHmacMiddleware,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { ownerId, protectionLevel, displayName, connectionConfig } = req.body;
+
+      const settings: UpdateChannelSettingsInput = {};
+      if (protectionLevel !== undefined) settings.protectionLevel = protectionLevel;
+      if (displayName !== undefined) settings.displayName = displayName;
+      if (connectionConfig !== undefined) settings.connectionConfig = connectionConfig;
+
+      const result = await updateChannelSettings(id, ownerId || HANGYEOL_SERVICE_USER_ID, settings);
+
+      if (!result.success) {
+        return res.status(404).json({ error: result.error });
+      }
+
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || "채널 설정 변경 실패" });
+    }
+  }
+);
+
+// ─── 13. 채널 통계 ──────────────────────────────────────────────────────────
+// GET /api/hangyeol/channels/stats
+hangyeolRouter.get(
+  "/channels/stats",
+  hangyeolHmacMiddleware,
+  async (req, res) => {
+    try {
+      const { ownerId } = req.query as { ownerId?: string };
+      const stats = await getChannelStats(ownerId || HANGYEOL_SERVICE_USER_ID);
+      res.json({ success: true, stats });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || "채널 통계 조회 실패" });
+    }
+  }
+);
+
+// ─── 14. 채널 타입 정보 ─────────────────────────────────────────────────────
+// GET /api/hangyeol/channels/types
+hangyeolRouter.get(
+  "/channels/types",
+  hangyeolHmacMiddleware,
+  async (_req, res) => {
+    res.json({ success: true, types: CHANNEL_INFO });
+  }
+);
 
 export default hangyeolRouter;
