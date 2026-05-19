@@ -70,10 +70,12 @@ export default function DevicesPage() {
 
   const registerMutation = trpc.mip.devices.register.useMutation({
     onSuccess: (data) => {
-      toast.success(`디바이스 등록 완료: ${data.deviceId}`);
-      utils.mip.devices.list.invalidate();
       setOpen(false);
       resetForm();
+      utils.mip.devices.list.invalidate();
+      requestAnimationFrame(() => {
+        setTimeout(() => toast.success(`디바이스 등록 완료: ${data.deviceId}`), 300);
+      });
     },
     onError: (e) => toast.error(`등록 실패: ${e.message}`),
   });

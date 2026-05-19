@@ -297,3 +297,7 @@
 - [x] Vitest 테스트 (8개 통과)
 ## Bugfix: RequestPackageDialog insertBefore 크래시
 - [x] Dialog 닫힘과 Sonner toast 표시가 동시에 발생하여 React DOM 트리 불일치 (NotFoundError: insertBefore) — onSuccess/onError에서 onClose() 먼저 호출 후 setTimeout(150ms)으로 toast 지연 표시
+- [x] insertBefore 크래시 근본 수정 강화 - requestAnimationFrame + setTimeout(300ms) 조합으로 Samsung Internet 등 느린 브라우저 대응
+- [x] ErrorBoundary 개선 - DOM 조작 에러(insertBefore/removeChild) 자동 복구 (최대 2회 재시도)
+- [x] DevicesPage registerMutation에서도 Dialog 닫기 -> toast 순서 안전하게 변경
+- [x] PackageDetailModal 이식 시작 버튼에서도 Dialog 닫기 -> navigation 순서 안전하게 변경

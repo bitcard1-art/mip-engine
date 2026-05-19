@@ -86,19 +86,23 @@ function RequestPackageDialog({ open, onClose }: { open: boolean; onClose: () =>
       onClose();
       setSelectedPersonas([]);
       setSelectAll(false);
-      setTimeout(() => {
-        toast.success(data.message, {
-          description: `요청 ID: ${data.requestId} | 예상 소요: ${Math.round(data.estimatedCompletionMs / 1000)}초`,
-        });
-      }, 150);
+      // Dialog Portal 언마운트 완료 후 toast 표시 (Samsung Internet 등 느린 브라우저 대응)
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          toast.success(data.message, {
+            description: `요청 ID: ${data.requestId} | 예상 소요: ${Math.round(data.estimatedCompletionMs / 1000)}초`,
+          });
+        }, 300);
+      });
     },
     onError: (err) => {
-      // Dialog가 열려 있는 상태에서 에러 toast를 표시하면 Portal 충돌 가능
-      // Dialog를 먼저 닫고 toast 표시
+      // Dialog Portal 언마운트 완료 후 toast 표시
       onClose();
-      setTimeout(() => {
-        toast.error("패키지 요청 실패", { description: err.message });
-      }, 150);
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          toast.error("패키지 요청 실패", { description: err.message });
+        }, 300);
+      });
     },
   });
 
@@ -372,7 +376,12 @@ function PackageDetailModal({
           {pkg.status === "validated" && (
             <Button
               className="w-full"
-              onClick={() => { onStartImplant(pkg.id); onClose(); }}
+              onClick={() => {
+                onClose();
+                requestAnimationFrame(() => {
+                  setTimeout(() => onStartImplant(pkg.id), 300);
+                });
+              }}
             >
               <Zap className="w-4 h-4 mr-2" />
               이 Package로 이식 시작
