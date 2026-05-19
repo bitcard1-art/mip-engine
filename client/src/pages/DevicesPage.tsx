@@ -106,7 +106,7 @@ export default function DevicesPage() {
               </div>
               <Button
                 className="w-full"
-                onClick={() => registerMutation.mutate(form)}
+                onClick={() => registerMutation.mutate(form as any)}
                 disabled={!form.deviceName || !form.did || registerMutation.isPending}
               >
                 {registerMutation.isPending ? "등록 중..." : "등록"}

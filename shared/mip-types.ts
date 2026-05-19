@@ -96,7 +96,7 @@ export interface RedteamRequest {
 
 // Runtime Connection Info
 export interface RuntimeConnectionInfo {
-  protocol: "ros2" | "mqtt" | "websocket";
+  protocol: "ros2" | "mqtt" | "websocket" | "webhook";
   endpoint: string;
   deviceId: string;
   sessionId: string;

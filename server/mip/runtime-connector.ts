@@ -18,7 +18,7 @@ const activeSessions = new Map<string, {
   implantationId: string;
   userId: string;
   deviceId: string;
-  protocol: "ros2" | "mqtt" | "websocket";
+  protocol: "ros2" | "mqtt" | "websocket" | "webhook";
   isolationActive: boolean;
   startedAt: number;
 }>();
@@ -151,7 +151,7 @@ export async function activateRuntime(
   implantationId: string,
   userId: string,
   deviceId: string,
-  protocol: "ros2" | "mqtt" | "websocket",
+  protocol: "ros2" | "mqtt" | "websocket" | "webhook",
   endpoint?: string
 ): Promise<{ sessionId: string; activated: boolean; connectionInfo: RuntimeConnectionInfo }> {
   const sessionId = nanoid();
@@ -170,6 +170,9 @@ export async function activateRuntime(
       break;
     case "websocket":
       connectionResult = connectWebSocket(deviceId, actualEndpoint);
+      break;
+    case "webhook":
+      connectionResult = connectWebhook(deviceId, actualEndpoint);
       break;
   }
 
@@ -298,10 +301,17 @@ export function getActiveSessions() {
   return Array.from(activeSessions.values());
 }
 
-function getDefaultEndpoint(protocol: "ros2" | "mqtt" | "websocket"): string {
+function getDefaultEndpoint(protocol: "ros2" | "mqtt" | "websocket" | "webhook"): string {
   switch (protocol) {
     case "ros2": return "ros2://localhost:7400";
     case "mqtt": return "mqtt://localhost:1883";
     case "websocket": return "ws://localhost:8080";
+    case "webhook": return "https://webhook.mip.local/inbound";
   }
+}
+
+function connectWebhook(deviceId: string, endpoint: string): { connected: boolean; sessionToken: string } {
+  // Webhook 연결은 수신 대기 상태 등록 (실제로는 외부 서비스에서 push)
+  const sessionToken = `whk_${deviceId}_${Date.now().toString(36)}`;
+  return { connected: true, sessionToken };
 }

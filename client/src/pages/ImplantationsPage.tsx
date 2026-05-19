@@ -336,7 +336,7 @@ export default function ImplantationsPage() {
             </div>
             <Button
               className="w-full"
-              onClick={() => startMutation.mutate(form)}
+              onClick={() => startMutation.mutate(form as any)}
               disabled={!form.deviceId || !form.packageId || startMutation.isPending}
             >
               {startMutation.isPending ? "시작 중..." : "이식 시작"}
