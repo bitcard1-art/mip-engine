@@ -119,7 +119,7 @@ export default function DevicesPage() {
                   <SelectTrigger className="bg-input border-border text-foreground">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-card border-border">
+                  <SelectContent className="bg-card border-border" container={null}>
                     <SelectItem value="humanoid">🤖 휴머노이드</SelectItem>
                     <SelectItem value="iot">📡 IoT</SelectItem>
                     <SelectItem value="software">💻 소프트웨어</SelectItem>
@@ -135,7 +135,7 @@ export default function DevicesPage() {
                     <SelectTrigger className="bg-input border-border text-foreground">
                       <SelectValue placeholder="채널 선택..." />
                     </SelectTrigger>
-                    <SelectContent className="bg-card border-border">
+                    <SelectContent className="bg-card border-border" container={null}>
                       <SelectItem value="none">— 일반 소프트웨어 (채널 없음)</SelectItem>
                       {CHANNEL_TYPES.map((ch) => (
                         <SelectItem key={ch.value} value={ch.value}>
