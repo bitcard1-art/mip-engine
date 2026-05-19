@@ -36,7 +36,7 @@ const isChannelType = (type: string) => CHANNEL_TYPES.some((c) => c.value === ty
 
 export default function DevicesPage() {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ deviceName: "", deviceType: "software" as string, did: "" });
+  const [form, setForm] = useState({ deviceName: "", deviceType: "" as string, did: "" });
   const [channelType, setChannelType] = useState("none"); // "none" = 일반 소프트웨어
   const [accountId, setAccountId] = useState("");
   const utils = trpc.useUtils();
@@ -65,7 +65,7 @@ export default function DevicesPage() {
   });
 
   function resetForm() {
-    setForm({ deviceName: "", deviceType: "software", did: "" });
+    setForm({ deviceName: "", deviceType: "", did: "" });
     setChannelType("none");
     setAccountId("");
   }
@@ -86,7 +86,7 @@ export default function DevicesPage() {
 
   const isChannel = form.deviceType === "software" && channelType !== "none";
   const selectedChannel = CHANNEL_TYPES.find((c) => c.value === channelType);
-  const canSubmit = form.deviceName && (isChannel ? accountId : form.did);
+  const canSubmit = form.deviceName && form.deviceType && (isChannel ? accountId : form.did);
 
   return (
     <MIPLayout title="디바이스 관리">
@@ -117,7 +117,7 @@ export default function DevicesPage() {
                 <label className="text-xs text-muted-foreground mb-1 block">디바이스 유형</label>
                 <Select value={form.deviceType} onValueChange={(v) => { setForm({ ...form, deviceType: v }); setChannelType("none"); setAccountId(""); }}>
                   <SelectTrigger className="bg-input border-border text-foreground">
-                    <SelectValue />
+                    <SelectValue placeholder="(예: 휴머노이드, IoT, 소프트웨어)" />
                   </SelectTrigger>
                   <SelectContent className="bg-card border-border" container={null}>
                     <SelectItem value="humanoid">🤖 휴머노이드</SelectItem>
