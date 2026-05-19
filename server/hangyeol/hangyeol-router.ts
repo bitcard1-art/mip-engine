@@ -47,6 +47,7 @@ import {
   type RegisterChannelInput,
   type UpdateChannelSettingsInput,
 } from "../mip/channel-manager";
+import { sendCheckResultToHangyeol } from "./webhook-sender";
 
 const hangyeolRouter = Router();
 
@@ -408,6 +409,27 @@ hangyeolRouter.post(
         await incrementCheckCount(channelId, blocked);
       }
 
+      // 피싱/차단/의심 판정 시 한결에 자동 전송 (safe 제외)
+      if (result.verdict !== "safe") {
+        sendCheckResultToHangyeol({
+          checkId: result.checkId,
+          channelId,
+          deviceId,
+          channel,
+          senderNumber,
+          senderName,
+          messageContent,
+          riskScore: result.riskScore,
+          verdict: result.verdict,
+          verdictReason: result.verdictReason,
+          scores: result.scores,
+          action: result.action,
+          timestamp: Date.now(),
+        }).catch((err) => {
+          console.error("[Hangyeol] 한결 웹훅 전송 오류:", err);
+        });
+      }
+
       // 차단/피싱이면 403, 나머지 200
       const statusCode = result.verdict === "blocked" || result.verdict === "phishing" ? 403 : 200;
       res.status(statusCode).json({ success: true, ...result });
@@ -663,6 +685,134 @@ hangyeolRouter.get(
   hangyeolHmacMiddleware,
   async (_req, res) => {
     res.json({ success: true, types: CHANNEL_INFO });
+  }
+);
+
+// ─── 15. 채널 디바이스 메시지 수신 (자동 검열) ─────────────────────────────
+// POST /api/hangyeol/channel/inbound
+// 이식 완료된 채널 디바이스에 메시지가 들어오면 자동 검열 수행
+hangyeolRouter.post(
+  "/channel/inbound",
+  hangyeolHmacMiddleware,
+  async (req, res) => {
+    try {
+      const {
+        deviceId,
+        channelType,
+        senderNumber,
+        senderName,
+        messageContent,
+        messageUrl,
+      } = req.body as {
+        deviceId: string;
+        channelType: string;
+        senderNumber?: string;
+        senderName?: string;
+        messageContent: string;
+        messageUrl?: string;
+      };
+
+      if (!deviceId || !messageContent) {
+        res.status(400).json({
+          error: "MISSING_FIELDS",
+          message: "deviceId, messageContent 필드가 필요합니다.",
+        });
+        return;
+      }
+
+      // 디바이스가 이식 완료된 채널 타입인지 확인
+      const db = await getDb();
+      if (!db) {
+        res.status(500).json({ error: "DB_ERROR", message: "DB 연결 실패" });
+        return;
+      }
+
+      const [device] = await db
+        .select()
+        .from(mipDevices)
+        .where(eq(mipDevices.id, deviceId))
+        .limit(1);
+
+      if (!device) {
+        res.status(404).json({ error: "DEVICE_NOT_FOUND", message: "디바이스를 찾을 수 없습니다." });
+        return;
+      }
+
+      // 채널 타입 디바이스인지 확인
+      const channelTypes = ["sms", "kakaotalk", "whatsapp", "line", "telegram", "instagram", "rcs"];
+      if (!channelTypes.includes(device.deviceType)) {
+        res.status(400).json({
+          error: "NOT_CHANNEL_DEVICE",
+          message: `디바이스 타입이 채널이 아닙니다: ${device.deviceType}`,
+        });
+        return;
+      }
+
+      // 이식 완료 상태 확인 (active 세션 존재)
+      const { mipRuntimeSessions } = await import("../../drizzle/schema");
+      const { and } = await import("drizzle-orm");
+      const [activeSession] = await db
+        .select()
+        .from(mipRuntimeSessions)
+        .where(
+          and(
+            eq(mipRuntimeSessions.deviceId, deviceId),
+            eq(mipRuntimeSessions.status, "active")
+          )
+        )
+        .limit(1);
+
+      if (!activeSession) {
+        res.status(403).json({
+          error: "IMPLANTATION_NOT_ACTIVE",
+          message: "이식이 완료되지 않았거나 비활성 상태입니다.",
+        });
+        return;
+      }
+
+      // 자동 검열 수행
+      const result = await checkMessageSafety({
+        userId: device.userId,
+        sessionId: activeSession.id,
+        deviceId,
+        channel: (channelType || device.deviceType) as MessageCheckInput["channel"],
+        senderNumber,
+        senderName,
+        messageContent,
+        messageUrl,
+      });
+
+      // safe가 아니면 한결에 자동 전송
+      if (result.verdict !== "safe") {
+        sendCheckResultToHangyeol({
+          checkId: result.checkId,
+          deviceId,
+          channel: channelType || device.deviceType,
+          senderNumber,
+          senderName,
+          messageContent,
+          riskScore: result.riskScore,
+          verdict: result.verdict,
+          verdictReason: result.verdictReason,
+          scores: result.scores,
+          action: result.action,
+          timestamp: Date.now(),
+        }).catch((err) => {
+          console.error("[ChannelInbound] 한결 웹훅 전송 오류:", err);
+        });
+      }
+
+      const statusCode = result.verdict === "blocked" || result.verdict === "phishing" ? 403 : 200;
+      res.status(statusCode).json({
+        success: true,
+        deviceId,
+        channelType: device.deviceType,
+        ...result,
+      });
+    } catch (err) {
+      console.error("[ChannelInbound] 채널 메시지 검열 오류:", err);
+      res.status(500).json({ error: "INTERNAL_ERROR", message: "내부 서버 오류" });
+    }
   }
 );
 

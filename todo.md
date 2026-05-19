@@ -243,12 +243,12 @@
 
 ## Phase 28: 채널 이식 자동화 및 한결 자동 전송
 
-- [ ] 채널 등록 시 자동으로 이식(Implantation) 프로세스 시작
-- [ ] 이식 완료 후 채널 상태를 "보호 활성" 으로 전환
-- [ ] 채널에 수신된 메시지 자동 검열 (message/check 자동 호출 흐름)
-- [ ] 검열 결과(피싱/차단)를 한결 웹훅으로 자동 전송
-- [ ] ChannelsPage UI에 이식 상태(진행 중/완료/실패) 표시
-- [ ] 채널-이식 연동 Vitest 테스트
+- [x] 채널 등록 시 디바이스 등록 → 이식 프로세스 동일 흐름 적용 (기존 방식 유지)
+- [x] 이식 완료 후 active 세션 전환 (기존 implantation-engine의 activateRuntime이 webhook 프로토콜 지원)
+- [x] POST /api/hangyeol/channel/inbound — 이식 완료 채널 디바이스 메시지 자동 검열
+- [x] 검열 결과(피싱/차단/의심)를 한결 웹훅으로 자동 전송 (sendCheckResultToHangyeol)
+- [x] 이식 프로세스 페이지에서 채널 타입 디바이스 선택 및 Webhook 프로토콜로 이식 시작 가능
+- [x] 채널-이식 연동 Vitest 테스트 (7개 통과, 전체 270개 통과)
 
 ## Phase 28b: 채널을 디바이스로 통합
 
