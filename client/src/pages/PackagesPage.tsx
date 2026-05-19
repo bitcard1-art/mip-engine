@@ -82,15 +82,23 @@ function RequestPackageDialog({ open, onClose }: { open: boolean; onClose: () =>
 
   const requestMutation = trpc.mip.packages.requestFromLore.useMutation({
     onSuccess: (data) => {
-      toast.success(data.message, {
-        description: `요청 ID: ${data.requestId} | 예상 소요: ${Math.round(data.estimatedCompletionMs / 1000)}초`,
-      });
+      // Dialog를 먼저 닫고 상태 초기화 — DOM 정리가 완료된 후 toast 표시
       onClose();
       setSelectedPersonas([]);
       setSelectAll(false);
+      setTimeout(() => {
+        toast.success(data.message, {
+          description: `요청 ID: ${data.requestId} | 예상 소요: ${Math.round(data.estimatedCompletionMs / 1000)}초`,
+        });
+      }, 150);
     },
     onError: (err) => {
-      toast.error("패키지 요청 실패", { description: err.message });
+      // Dialog가 열려 있는 상태에서 에러 toast를 표시하면 Portal 충돌 가능
+      // Dialog를 먼저 닫고 toast 표시
+      onClose();
+      setTimeout(() => {
+        toast.error("패키지 요청 실패", { description: err.message });
+      }, 150);
     },
   });
 

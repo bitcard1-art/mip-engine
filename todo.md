@@ -295,3 +295,5 @@
 - [x] channel-blocker에서 저장된 OAuth 토큰으로 실제 YouTube API 호출
 - [x] 토큰 만료 시 자동 갱신 (refresh_token 사용)
 - [x] Vitest 테스트 (8개 통과)
+## Bugfix: RequestPackageDialog insertBefore 크래시
+- [x] Dialog 닫힘과 Sonner toast 표시가 동시에 발생하여 React DOM 트리 불일치 (NotFoundError: insertBefore) — onSuccess/onError에서 onClose() 먼저 호출 후 setTimeout(150ms)으로 toast 지연 표시
