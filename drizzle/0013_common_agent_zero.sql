@@ -1,0 +1,1 @@
+ALTER TABLE `mip_webhook_send_logs` MODIFY COLUMN `target` enum('soma','lore','hangyeol') NOT NULL;

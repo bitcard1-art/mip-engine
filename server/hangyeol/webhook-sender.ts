@@ -24,7 +24,7 @@ export interface MessageCheckAlert {
   messageContent: string;
   riskScore: number;
   verdict: "safe" | "suspicious" | "phishing" | "blocked";
-  verdictReason: string;
+  verdictReason: { summary: string; indicators: string[] };
   scores: Record<string, number>;
   action: string;
   timestamp: number;

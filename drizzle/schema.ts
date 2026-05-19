@@ -319,7 +319,7 @@ export type InsertMipPackageRefreshRequest = typeof mipPackageRefreshRequests.$i
 // MIP → Soma / MIP → Lore 발신 Webhook 전송 결과 기록
 export const mipWebhookSendLogs = mysqlTable("mip_webhook_send_logs", {
   id: varchar("id", { length: 36 }).primaryKey(),
-  target: mysqlEnum("target", ["soma", "lore"]).notNull(),           // 발신 대상
+  target: mysqlEnum("target", ["soma", "lore", "hangyeol"]).notNull(), // 발신 대상
   eventType: varchar("event_type", { length: 80 }).notNull(),        // 이벤트 타입
   url: varchar("url", { length: 500 }).notNull(),                    // 전송 URL
   statusCode: int("status_code"),                                    // HTTP 응답 코드 (null=네트워크 오류)
