@@ -233,7 +233,7 @@ class DetailErrorBoundary extends Component<{ children: ReactNode }, { hasError:
 export default function ImplantationsPage() {
   const [open, setOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [form, setForm] = useState({ deviceId: "", packageId: "", protocol: "websocket" as "ros2" | "mqtt" | "websocket" });
+  const [form, setForm] = useState({ deviceId: "", packageId: "", protocol: "websocket" as string });
   const utils = trpc.useUtils();
 
   const { data: implantations, isLoading, refetch: refetchList } = trpc.mip.implant.list.useQuery(undefined, { refetchInterval: 5000 });
@@ -330,6 +330,7 @@ export default function ImplantationsPage() {
                   <SelectItem value="ros2">ROS2 (휴머노이드)</SelectItem>
                   <SelectItem value="mqtt">MQTT (IoT)</SelectItem>
                   <SelectItem value="websocket">WebSocket (소프트웨어)</SelectItem>
+                  <SelectItem value="webhook">Webhook (SNS/메신저)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

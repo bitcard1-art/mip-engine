@@ -61,7 +61,7 @@ hangyeolRouter.post(
   async (req, res) => {
     try {
       const { deviceType, deviceName, did, metadata } = req.body as {
-        deviceType: "humanoid" | "iot" | "software";
+        deviceType: "humanoid" | "iot" | "software" | "sms" | "kakaotalk" | "whatsapp" | "line" | "telegram" | "instagram" | "rcs";
         deviceName: string;
         did: string;
         metadata?: Record<string, unknown>;

@@ -16,11 +16,15 @@ const STATUS_CONFIG = {
   revoked: { label: "해지됨", color: "text-gray-500", icon: XCircle },
 };
 
-const DEVICE_TYPE_LABELS = { humanoid: "휴머노이드", iot: "IoT", software: "소프트웨어" };
+const DEVICE_TYPE_LABELS: Record<string, string> = {
+  humanoid: "휴머노이드", iot: "IoT", software: "소프트웨어",
+  sms: "SMS/MMS", kakaotalk: "카카오톡", whatsapp: "WhatsApp",
+  line: "LINE", telegram: "Telegram", instagram: "Instagram DM", rcs: "RCS",
+};
 
 export default function DevicesPage() {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ deviceName: "", deviceType: "software" as "humanoid" | "iot" | "software", did: "" });
+  const [form, setForm] = useState({ deviceName: "", deviceType: "software" as string, did: "" });
   const utils = trpc.useUtils();
 
   const { data: devices, isLoading } = trpc.mip.devices.list.useQuery();
@@ -78,9 +82,16 @@ export default function DevicesPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-card border-border">
-                    <SelectItem value="humanoid">휴머노이드</SelectItem>
-                    <SelectItem value="iot">IoT</SelectItem>
-                    <SelectItem value="software">소프트웨어</SelectItem>
+                    <SelectItem value="humanoid">🤖 휴머노이드</SelectItem>
+                    <SelectItem value="iot">📡 IoT</SelectItem>
+                    <SelectItem value="software">💻 소프트웨어</SelectItem>
+                    <SelectItem value="sms">📱 SMS/MMS</SelectItem>
+                    <SelectItem value="kakaotalk">💬 카카오톡</SelectItem>
+                    <SelectItem value="whatsapp">📞 WhatsApp</SelectItem>
+                    <SelectItem value="line">🟢 LINE</SelectItem>
+                    <SelectItem value="telegram">✈️ Telegram</SelectItem>
+                    <SelectItem value="instagram">📷 Instagram DM</SelectItem>
+                    <SelectItem value="rcs">💎 RCS</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -34,7 +34,7 @@ export interface ImplantationStartInput {
   userId: string;
   deviceId: string;
   packageId: string;
-  protocol: "ros2" | "mqtt" | "websocket";
+  protocol: "ros2" | "mqtt" | "websocket" | "webhook";
   endpoint?: string;
 }
 

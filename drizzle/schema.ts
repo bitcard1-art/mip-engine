@@ -30,7 +30,7 @@ export type InsertUser = typeof users.$inferInsert;
 export const mipDevices = mysqlTable("mip_devices", {
   id: varchar("id", { length: 36 }).primaryKey(),
   userId: varchar("user_id", { length: 36 }).notNull(),
-  deviceType: mysqlEnum("device_type", ["humanoid", "iot", "software"]).notNull(),
+  deviceType: mysqlEnum("device_type", ["humanoid", "iot", "software", "sms", "kakaotalk", "whatsapp", "line", "telegram", "instagram", "rcs"]).notNull(),
   deviceName: varchar("device_name", { length: 100 }).notNull(),
   did: text("did").notNull(),
   trustLevel: int("trust_level").default(0), // 0~3
@@ -159,7 +159,7 @@ export const mipRuntimeSessions = mysqlTable("mip_runtime_sessions", {
   implantationId: varchar("implantation_id", { length: 36 }).notNull(),
   userId: varchar("user_id", { length: 36 }).notNull(),
   deviceId: varchar("device_id", { length: 36 }).notNull(),
-  protocol: mysqlEnum("protocol", ["ros2", "mqtt", "websocket"]).notNull(),
+  protocol: mysqlEnum("protocol", ["ros2", "mqtt", "websocket", "webhook"]).notNull(),
   connectionEndpoint: varchar("connection_endpoint", { length: 255 }),
   status: mysqlEnum("status", ["connecting", "active", "suspended", "terminated"]).default("connecting").notNull(),
   isolationLayerActive: boolean("isolation_layer_active").default(true).notNull(),

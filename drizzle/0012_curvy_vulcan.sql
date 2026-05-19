@@ -1,0 +1,2 @@
+ALTER TABLE `mip_devices` MODIFY COLUMN `device_type` enum('humanoid','iot','software','sms','kakaotalk','whatsapp','line','telegram','instagram','rcs') NOT NULL;--> statement-breakpoint
+ALTER TABLE `mip_runtime_sessions` MODIFY COLUMN `protocol` enum('ros2','mqtt','websocket','webhook') NOT NULL;

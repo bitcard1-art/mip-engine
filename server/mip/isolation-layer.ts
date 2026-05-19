@@ -386,7 +386,7 @@ export interface DeploymentSecurityInput {
   implantationId: string;
   sessionId?: string;
   userId: string;
-  deviceType?: "humanoid" | "iot" | "software";
+  deviceType?: "humanoid" | "iot" | "software" | "sms" | "kakaotalk" | "whatsapp" | "line" | "telegram" | "instagram" | "rcs";
   didWalletBinding?: string;
 }
 
