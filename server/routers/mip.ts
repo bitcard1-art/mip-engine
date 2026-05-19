@@ -294,7 +294,6 @@ export const mipRouter = router({
       const db = await getDb();
       if (!db) return [];
       return db.select().from(mipPackages)
-        .where(eq(mipPackages.status, 'validated'))
         .orderBy(desc(mipPackages.receivedAt))
         .limit(100);
     }),
@@ -365,6 +364,8 @@ export const mipRouter = router({
 
           requestedAt: Date.now(),
         });
+
+        console.log(`[PackageRequest] LORE 응답: ok=${result.ok}, status=${result.status}, data=${JSON.stringify(result.data)}`);
 
         if (!result.ok) {
           // 실패 시 DB 상태 업데이트

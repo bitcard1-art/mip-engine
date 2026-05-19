@@ -166,7 +166,11 @@ export async function callLoreApi(
     });
 
     if (!res.ok) {
-      return { ok: false, status: res.status, data: undefined };
+      const errBody = await res.text().catch(() => "");
+      console.error(`[LoreApi] 에러 응답: ${path} status=${res.status} body=${errBody}`);
+      let errData: unknown = errBody;
+      try { errData = JSON.parse(errBody); } catch {}
+      return { ok: false, status: res.status, data: errData };
     }
     // JSON 파싱 실패 시 (HTML 반환 등) ok: false로 처리
     const contentType = res.headers.get("content-type") || "";

@@ -302,3 +302,4 @@
 - [x] DevicesPage registerMutation에서도 Dialog 닫기 -> toast 순서 안전하게 변경
 - [x] PackageDetailModal 이식 시작 버튼에서도 Dialog 닫기 -> navigation 순서 안전하게 변경
 - [x] LORE 패키지 요청 400 에러 수정 - 필수 필드(packageId, reason) 추가, reason을 'user_request'로 변경
+- [x] MIO Package listAll에서 validated 필터 제거 - 모든 상태의 패키지를 표시 (8개 모두 보이도록)
