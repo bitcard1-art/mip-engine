@@ -1,6 +1,6 @@
 import MIPLayout from "@/components/MIPLayout";
 import { trpc } from "@/lib/trpc";
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Activity, Zap, RefreshCw, Shield } from "lucide-react";
@@ -29,27 +29,69 @@ const EVENT_TYPE_LABELS: Record<string, string> = {
 };
 
 const SAFETY_LAYER_LABELS: Record<number, { name: string; desc: string }> = {
-  1: { name: "Hardware", desc: "ROS2 토크·속도 제한" },
-  2: { name: "Firmware", desc: "MQTT Emergency Stop" },
+  1: { name: "하드웨어", desc: "ROS2 토크·속도 제한" },
+  2: { name: "펌웨어", desc: "MQTT 긴급 정지" },
   3: { name: "OS", desc: "행동 Allowlist 필터" },
-  4: { name: "MIP", desc: "Ethical Boundary 정책" },
-  5: { name: "MIO", desc: "자율 윤리 판단" },
+  4: { name: "MIP", desc: "윤리적 경계 정책" },
+  5: { name: "미오", desc: "자율 윤리 판단" },
 };
 
 export default function SafetyPage() {
   const [selectedDevice, setSelectedDevice] = useState<SelectedDevice | null>(null);
-  const [killSwitchSessionId, setKillSwitchSessionId] = useState("");
+  const [autoSelected, setAutoSelected] = useState(false);
   const utils = trpc.useUtils();
 
-  const { data: logs, isLoading, refetch } = trpc.mip.safety.getLogs.useQuery({ limit: 50 }, { refetchInterval: 5000 });
-  const { data: activeSessions } = trpc.mip.safety.activeSessions.useQuery({ refetchInterval: 5000 } as any);
+  // 이식 완료된 디바이스 목록 (자동 선택용)
+  const { data: devices } = trpc.mip.devices.listAll.useQuery();
+  const { data: implantations } = trpc.mip.implant.list.useQuery();
+
+  // 이식 완료된 디바이스 목록 계산
+  const completedDevices = useMemo(() => {
+    if (!devices || !implantations) return [];
+    const completedImplants = implantations.filter((i) => i.status === "completed");
+    return completedImplants
+      .map((impl) => {
+        const device = devices.find((d) => d.id === impl.deviceId);
+        if (!device) return null;
+        return {
+          deviceId: device.id,
+          deviceName: device.deviceName,
+          deviceType: device.deviceType,
+          implantationId: impl.id,
+          packageId: impl.packageId,
+        } as SelectedDevice;
+      })
+      .filter(Boolean) as SelectedDevice[];
+  }, [devices, implantations]);
+
+  // 자동 선택: 이식 완료된 첫 번째 디바이스를 자동으로 선택
+  useEffect(() => {
+    if (!autoSelected && completedDevices.length > 0 && !selectedDevice) {
+      setSelectedDevice(completedDevices[0]);
+      setAutoSelected(true);
+    }
+  }, [completedDevices, autoSelected, selectedDevice]);
+
+  // 선택된 디바이스 기준으로 로그 조회
+  const queryInput = useMemo(() => ({
+    deviceId: selectedDevice?.deviceId,
+    limit: 50,
+  }), [selectedDevice?.deviceId]);
+
+  const { data: logs, isLoading, refetch } = trpc.mip.safety.getLogs.useQuery(queryInput, { refetchInterval: 5000 });
+
+  // 선택된 디바이스 기준으로 활성 세션 조회
+  const sessionInput = useMemo(() => (
+    selectedDevice ? { deviceId: selectedDevice.deviceId } : undefined
+  ), [selectedDevice?.deviceId]);
+
+  const { data: activeSessions } = trpc.mip.safety.activeSessions.useQuery(sessionInput, { refetchInterval: 5000 });
   const { data: thresholds } = trpc.mip.safety.getThresholds.useQuery();
 
   const killSwitchMutation = trpc.mip.safety.killSwitch.useMutation({
     onSuccess: (data) => {
       toast.success(data.message);
       utils.mip.safety.activeSessions.invalidate();
-      setKillSwitchSessionId("");
     },
     onError: (e) => toast.error(`Kill Switch 실패: ${e.message}`),
   });
@@ -60,7 +102,7 @@ export default function SafetyPage() {
   }, {} as Record<string, number>) || {};
 
   return (
-    <MIPLayout title="Safety Monitor">
+    <MIPLayout title="안전 모니터">
       <div className="mb-6">
         <h2 className="text-lg font-semibold text-foreground">5계층 안전 구조 모니터링</h2>
         <p className="text-sm text-muted-foreground">실시간 이상 감지 및 자동 경보 시스템</p>
@@ -70,17 +112,47 @@ export default function SafetyPage() {
       <Card className="bg-card border-border mb-6">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-semibold text-foreground">대상 디바이스 선택</CardTitle>
-          <p className="text-xs text-muted-foreground">이식 완료된 디바이스를 선택하면 해당 디바이스의 안전 로그를 확인합니다.</p>
+          <p className="text-xs text-muted-foreground">
+            이식 완료된 디바이스를 선택하면 해당 디바이스의 안전 로그를 확인합니다.
+            {completedDevices.length > 0 && !selectedDevice && " (자동 연결 중...)"}
+          </p>
         </CardHeader>
         <CardContent className="flex items-center gap-4">
           <DeviceSelector
             value={selectedDevice}
-            onChange={setSelectedDevice}
+            onChange={(d) => { setSelectedDevice(d); setAutoSelected(true); }}
             className="flex-1"
           />
           {selectedDevice && <DeviceBadge device={selectedDevice} />}
         </CardContent>
       </Card>
+
+      {/* 선택된 디바이스 정보 표시 */}
+      {selectedDevice && (
+        <div className="mb-6 p-3 rounded-lg border border-primary/20 bg-primary/5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Shield className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium text-foreground">
+                모니터링 대상: <span className="text-primary">{selectedDevice.deviceName}</span>
+              </span>
+              <span className="text-xs text-muted-foreground">
+                ({selectedDevice.deviceType})
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              {activeSessions && activeSessions.length > 0 ? (
+                <span className="text-xs text-emerald-400 flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  활성 세션 {activeSessions.length}개
+                </span>
+              ) : (
+                <span className="text-xs text-muted-foreground">활성 세션 없음</span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Safety Layers */}
       <div className="grid grid-cols-5 gap-2 mb-6">
@@ -110,6 +182,7 @@ export default function SafetyPage() {
             <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
               <Activity className="w-4 h-4 text-primary" />
               심각도 분포
+              {selectedDevice && <span className="text-xs text-muted-foreground font-normal">({selectedDevice.deviceName})</span>}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -128,11 +201,14 @@ export default function SafetyPage() {
             <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
               <Zap className="w-4 h-4 text-emerald-400" />
               활성 세션
+              {selectedDevice && <span className="text-xs text-muted-foreground font-normal">({selectedDevice.deviceName})</span>}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {!activeSessions || activeSessions.length === 0 ? (
-              <p className="text-xs text-muted-foreground text-center py-4">활성 세션 없음</p>
+              <p className="text-xs text-muted-foreground text-center py-4">
+                {selectedDevice ? `${selectedDevice.deviceName}의 활성 세션 없음` : "디바이스를 선택하세요"}
+              </p>
             ) : (
               <div className="space-y-2">
                 {activeSessions.map((session) => (
@@ -183,6 +259,7 @@ export default function SafetyPage() {
             <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-yellow-400" />
               안전 이벤트 로그
+              {selectedDevice && <span className="text-xs text-muted-foreground font-normal">({selectedDevice.deviceName})</span>}
             </CardTitle>
             <Button size="sm" variant="outline" onClick={() => refetch()} className="h-7 text-xs gap-1">
               <RefreshCw className="w-3 h-3" />갱신
@@ -193,7 +270,11 @@ export default function SafetyPage() {
           {isLoading ? (
             <div className="py-8 text-center"><RefreshCw className="w-5 h-5 animate-spin text-primary mx-auto" /></div>
           ) : !logs || logs.length === 0 ? (
-            <div className="py-8 text-center text-muted-foreground text-sm">안전 이벤트가 없습니다</div>
+            <div className="py-8 text-center text-muted-foreground text-sm">
+              {selectedDevice
+                ? `${selectedDevice.deviceName}의 안전 이벤트가 없습니다`
+                : "디바이스를 선택하면 안전 로그가 표시됩니다"}
+            </div>
           ) : (
             <div className="divide-y divide-border max-h-96 overflow-y-auto">
               {logs.map((log) => {

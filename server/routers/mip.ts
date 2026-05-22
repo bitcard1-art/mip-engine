@@ -432,12 +432,17 @@ export const mipRouter = router({
   // ── Safety Monitor ────────────────────────────────────────────────────────
   safety: router({
     getLogs: protectedProcedure
-      .input(z.object({ sessionId: z.string().optional(), limit: z.number().default(50) }))
+      .input(z.object({ sessionId: z.string().optional(), deviceId: z.string().optional(), limit: z.number().default(50) }))
       .query(async ({ input }) => {
         const db = await getDb();
         if (!db) return [];
-        const query = db.select().from(mipSafetyLogs).orderBy(desc(mipSafetyLogs.timestamp)).limit(input.limit);
-        return query;
+        const conditions: any[] = [];
+        if (input.sessionId) conditions.push(eq(mipSafetyLogs.sessionId, input.sessionId));
+        if (input.deviceId) conditions.push(eq(mipSafetyLogs.deviceId, input.deviceId));
+        if (conditions.length > 0) {
+          return db.select().from(mipSafetyLogs).where(and(...conditions)).orderBy(desc(mipSafetyLogs.timestamp)).limit(input.limit);
+        }
+        return db.select().from(mipSafetyLogs).orderBy(desc(mipSafetyLogs.timestamp)).limit(input.limit);
       }),
 
     reportEvent: protectedProcedure
@@ -472,13 +477,17 @@ export const mipRouter = router({
 
     getThresholds: protectedProcedure.query(() => getCurrentThresholds()),
 
-    activeSessions: protectedProcedure.query(async () => {
-      const db = await getDb();
-      if (!db) return [];
-      return db.select().from(mipRuntimeSessions)
-        .where(eq(mipRuntimeSessions.status, "active"))
-        .orderBy(desc(mipRuntimeSessions.startedAt));
-    }),
+    activeSessions: protectedProcedure
+      .input(z.object({ deviceId: z.string().optional() }).optional())
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        const conditions: any[] = [eq(mipRuntimeSessions.status, "active")];
+        if (input?.deviceId) conditions.push(eq(mipRuntimeSessions.deviceId, input.deviceId));
+        return db.select().from(mipRuntimeSessions)
+          .where(and(...conditions))
+          .orderBy(desc(mipRuntimeSessions.startedAt));
+      }),
   }),
 
   // ── 정책 관리 ─────────────────────────────────────────────────────────────
