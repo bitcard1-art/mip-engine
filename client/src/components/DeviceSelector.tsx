@@ -1,8 +1,8 @@
-import { useMemo } from "react";
+import { useMemo, useEffect, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Cpu, Monitor, Bot } from "lucide-react";
+import { Cpu, Monitor, Bot, CheckCircle2 } from "lucide-react";
 
 const DEVICE_TYPE_CONFIG: Record<string, { label: string; icon: React.ElementType; color: string }> = {
   humanoid: { label: "휴머노이드", icon: Bot, color: "bg-purple-500/20 text-purple-300 border-purple-500/30" },
@@ -23,6 +23,8 @@ interface DeviceSelectorProps {
   onChange: (device: SelectedDevice | null) => void;
   /** 완료된 이식만 필터링 (기본: true) */
   completedOnly?: boolean;
+  /** 자동 선택 활성화 (기본: true) — 이식 완료된 첫 번째 디바이스 자동 선택 */
+  autoSelect?: boolean;
   className?: string;
 }
 
@@ -32,9 +34,10 @@ interface DeviceSelectorProps {
  * devices.listAll + implant.list를 조합하여
  * 이식 완료된 디바이스만 선택 가능하게 합니다.
  */
-export default function DeviceSelector({ value, onChange, completedOnly = true, className }: DeviceSelectorProps) {
+export default function DeviceSelector({ value, onChange, completedOnly = true, autoSelect = true, className }: DeviceSelectorProps) {
   const { data: devices } = trpc.mip.devices.listAll.useQuery();
   const { data: implantations } = trpc.mip.implant.list.useQuery();
+  const autoSelectedRef = useRef(false);
 
   // 이식 완료된 디바이스만 필터링하고 implantationId/packageId 매핑
   const selectableDevices = useMemo(() => {
@@ -59,6 +62,14 @@ export default function DeviceSelector({ value, onChange, completedOnly = true, 
       .filter(Boolean) as SelectedDevice[];
   }, [devices, implantations, completedOnly]);
 
+  // 자동 선택: 이식 완료된 첫 번째 디바이스
+  useEffect(() => {
+    if (autoSelect && !autoSelectedRef.current && selectableDevices.length > 0 && !value) {
+      onChange(selectableDevices[0]);
+      autoSelectedRef.current = true;
+    }
+  }, [autoSelect, selectableDevices, value, onChange]);
+
   const handleChange = (deviceId: string) => {
     const selected = selectableDevices.find((d) => d.deviceId === deviceId) ?? null;
     onChange(selected);
@@ -68,7 +79,15 @@ export default function DeviceSelector({ value, onChange, completedOnly = true, 
     <div className={className}>
       <Select value={value?.deviceId ?? ""} onValueChange={handleChange}>
         <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
-          <SelectValue placeholder="디바이스를 선택하세요" />
+          <SelectValue placeholder="디바이스를 선택하세요">
+            {value && (
+              <span className="flex items-center gap-2">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="font-medium">{value.deviceName}</span>
+                <span className="text-xs text-gray-400">({DEVICE_TYPE_CONFIG[value.deviceType]?.label ?? value.deviceType})</span>
+              </span>
+            )}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent className="bg-gray-800 border-gray-700">
           {selectableDevices.length === 0 ? (

@@ -1,6 +1,6 @@
 import MIPLayout from "@/components/MIPLayout";
 import { trpc } from "@/lib/trpc";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Activity, Zap, RefreshCw, Shield, CheckCircle2 } from "lucide-react";
@@ -38,39 +38,7 @@ const SAFETY_LAYER_LABELS: Record<number, { name: string; desc: string }> = {
 
 export default function SafetyPage() {
   const [selectedDevice, setSelectedDevice] = useState<SelectedDevice | null>(null);
-  const [autoSelected, setAutoSelected] = useState(false);
   const utils = trpc.useUtils();
-
-  // 이식 완료된 디바이스 목록 (자동 선택용)
-  const { data: devices } = trpc.mip.devices.listAll.useQuery();
-  const { data: implantations } = trpc.mip.implant.list.useQuery();
-
-  // 이식 완료된 디바이스 목록 계산
-  const completedDevices = useMemo(() => {
-    if (!devices || !implantations) return [];
-    const completedImplants = implantations.filter((i) => i.status === "completed");
-    return completedImplants
-      .map((impl) => {
-        const device = devices.find((d) => d.id === impl.deviceId);
-        if (!device) return null;
-        return {
-          deviceId: device.id,
-          deviceName: device.deviceName,
-          deviceType: device.deviceType,
-          implantationId: impl.id,
-          packageId: impl.packageId,
-        } as SelectedDevice;
-      })
-      .filter(Boolean) as SelectedDevice[];
-  }, [devices, implantations]);
-
-  // 자동 선택: 이식 완료된 첫 번째 디바이스를 자동으로 선택
-  useEffect(() => {
-    if (!autoSelected && completedDevices.length > 0 && !selectedDevice) {
-      setSelectedDevice(completedDevices[0]);
-      setAutoSelected(true);
-    }
-  }, [completedDevices, autoSelected, selectedDevice]);
 
   // 선택된 디바이스 기준으로 로그 조회 (선택 안 되면 쿼리 비활성)
   const queryInput = useMemo(() => ({
@@ -125,18 +93,16 @@ export default function SafetyPage() {
         <CardContent className="flex items-center gap-4">
           <DeviceSelector
             value={selectedDevice}
-            onChange={(d) => { setSelectedDevice(d); setAutoSelected(true); }}
+            onChange={setSelectedDevice}
             className="flex-1"
           />
           {selectedDevice && (
             <div className="flex items-center gap-2">
               <DeviceBadge device={selectedDevice} />
-              {autoSelected && (
-                <span className="text-xs text-emerald-400 flex items-center gap-1">
-                  <CheckCircle2 className="w-3 h-3" />
-                  연결됨
-                </span>
-              )}
+              <span className="text-xs text-emerald-400 flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" />
+                연결됨
+              </span>
             </div>
           )}
         </CardContent>
@@ -150,9 +116,7 @@ export default function SafetyPage() {
           <p className="text-sm text-muted-foreground/70 max-w-md">
             이식 완료된 디바이스를 선택하면 해당 디바이스의 안전 모니터링 데이터가 표시됩니다.
           </p>
-          {completedDevices.length === 0 && (
-            <p className="text-xs text-yellow-400 mt-4">이식 완료된 디바이스가 없습니다.</p>
-          )}
+
         </div>
       )}
 

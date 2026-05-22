@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { Shield, Zap } from "lucide-react";
 import MIPLayout from "@/components/MIPLayout";
 import DeviceSelector, { DeviceBadge, type SelectedDevice } from "@/components/DeviceSelector";
 
@@ -121,6 +122,30 @@ export default function PhysicalActionPage() {
           </CardContent>
         </Card>
 
+        {/* 디바이스 미선택 시 안내 */}
+        {!selectedDevice && (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <Shield className="w-12 h-12 text-gray-600 mb-4" />
+            <h3 className="text-lg font-medium text-gray-400 mb-2">디바이스를 선택하세요</h3>
+            <p className="text-sm text-gray-500 max-w-md">
+              이식 완료된 디바이스를 선택하면 해당 디바이스의 Physical Action 승인 데이터가 표시됩니다.
+            </p>
+          </div>
+        )}
+
+        {selectedDevice && (
+          <>
+        {/* 연결 상태 배너 */}
+        <div className="p-3 rounded-lg border border-cyan-500/20 bg-cyan-500/5">
+          <div className="flex items-center gap-3">
+            <Zap className="w-4 h-4 text-cyan-400" />
+            <span className="text-sm font-medium text-white">
+              모니터링 대상: <span className="text-cyan-300 font-semibold">{selectedDevice.deviceName}</span>
+            </span>
+            <span className="text-xs text-gray-400">({selectedDevice.deviceType})</span>
+          </div>
+        </div>
+
         {/* Tier 정의 카드 */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
           {tierEntries.map((t) => (
@@ -213,7 +238,7 @@ export default function PhysicalActionPage() {
             {isLoading ? (
               <p className="text-gray-400 text-center py-8">로딩 중...</p>
             ) : !actions || actions.length === 0 ? (
-              <p className="text-gray-400 text-center py-8">아직 액션 이력이 없습니다.</p>
+              <p className="text-gray-400 text-center py-8">{selectedDevice.deviceName}의 액션 이력이 없습니다.</p>
             ) : (
               <div className="space-y-3">
                 {actions.map((action) => (
@@ -274,6 +299,8 @@ export default function PhysicalActionPage() {
             )}
           </CardContent>
         </Card>
+          </>
+        )}
       </div>
     </MIPLayout>
   );

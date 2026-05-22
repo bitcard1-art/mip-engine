@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
+import { Shield, Heart } from "lucide-react";
 import MIPLayout from "@/components/MIPLayout";
 import DeviceSelector, { DeviceBadge, type SelectedDevice } from "@/components/DeviceSelector";
 
@@ -120,6 +121,30 @@ export default function EmotionalRiskPage() {
             {selectedDevice && <DeviceBadge device={selectedDevice} />}
           </CardContent>
         </Card>
+
+        {/* 디바이스 미선택 시 안내 */}
+        {!selectedDevice && (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <Shield className="w-12 h-12 text-gray-600 mb-4" />
+            <h3 className="text-lg font-medium text-gray-400 mb-2">디바이스를 선택하세요</h3>
+            <p className="text-sm text-gray-500 max-w-md">
+              이식 완료된 디바이스를 선택하면 해당 디바이스의 정서적 의존 위험도 분석 데이터가 표시됩니다.
+            </p>
+          </div>
+        )}
+
+        {selectedDevice && (
+          <>
+        {/* 연결 상태 배너 */}
+        <div className="p-3 rounded-lg border border-pink-500/20 bg-pink-500/5">
+          <div className="flex items-center gap-3">
+            <Heart className="w-4 h-4 text-pink-400" />
+            <span className="text-sm font-medium text-white">
+              분석 대상: <span className="text-pink-300 font-semibold">{selectedDevice.deviceName}</span>
+            </span>
+            <span className="text-xs text-gray-400">({selectedDevice.deviceType})</span>
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* 분석 입력 */}
@@ -287,7 +312,7 @@ export default function EmotionalRiskPage() {
             {isLoading ? (
               <p className="text-gray-400 text-center py-8">로딩 중...</p>
             ) : !history || history.length === 0 ? (
-              <p className="text-gray-400 text-center py-8">아직 분석 이력이 없습니다.</p>
+              <p className="text-gray-400 text-center py-8">{selectedDevice.deviceName}의 분석 이력이 없습니다.</p>
             ) : (
               <div className="space-y-2">
                 {history.map((log) => (
@@ -315,6 +340,8 @@ export default function EmotionalRiskPage() {
             )}
           </CardContent>
         </Card>
+          </>
+        )}
       </div>
     </MIPLayout>
   );
