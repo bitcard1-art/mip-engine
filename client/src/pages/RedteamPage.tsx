@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Terminal, Shield, XCircle, CheckCircle, AlertTriangle } from "lucide-react";
+import { Terminal, Shield, XCircle, CheckCircle, AlertTriangle, Zap } from "lucide-react";
 import { toast } from "sonner";
 import DeviceSelector, { DeviceBadge, type SelectedDevice } from "@/components/DeviceSelector";
 
@@ -73,6 +73,30 @@ export default function RedteamPage() {
           {selectedDevice && <DeviceBadge device={selectedDevice} />}
         </CardContent>
       </Card>
+
+      {/* 디바이스 미선택 시 안내 */}
+      {!selectedDevice && (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <Shield className="w-12 h-12 text-gray-600 mb-4" />
+          <h3 className="text-lg font-medium text-gray-400 mb-2">디바이스를 선택하세요</h3>
+          <p className="text-sm text-gray-500 max-w-md">
+            이식 완료된 디바이스를 선택하면 해당 디바이스 대상으로 Red-teaming 공격 시나리오를 실행할 수 있습니다.
+          </p>
+        </div>
+      )}
+
+      {selectedDevice && (
+        <>
+      {/* 연결 상태 배너 */}
+      <div className="p-3 rounded-lg border border-cyan-500/20 bg-cyan-500/5 mb-6">
+        <div className="flex items-center gap-3">
+          <Zap className="w-4 h-4 text-cyan-400" />
+          <span className="text-sm font-medium text-white">
+            공격 대상: <span className="text-cyan-300 font-semibold">{selectedDevice.deviceName}</span>
+          </span>
+          <span className="text-xs text-gray-400">({selectedDevice.deviceType})</span>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Input */}
@@ -223,6 +247,8 @@ export default function RedteamPage() {
           )}
         </div>
       </div>
+      </>
+      )}
     </MIPLayout>
   );
 }

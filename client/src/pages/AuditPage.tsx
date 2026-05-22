@@ -1,9 +1,12 @@
 import MIPLayout from "@/components/MIPLayout";
 import { trpc } from "@/lib/trpc";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, CheckCircle, XCircle, RefreshCw } from "lucide-react";
+import { Package, CheckCircle, XCircle, RefreshCw, Shield, Zap } from "lucide-react";
+import DeviceSelector, { type SelectedDevice } from "@/components/DeviceSelector";
 
 export default function AuditPage() {
+  const [selectedDevice, setSelectedDevice] = useState<SelectedDevice | null>(null);
   const { data: auditLogs, isLoading } = trpc.mip.audit.list.useQuery({ limit: 50 });
   const { data: verifyResult } = trpc.mip.audit.verify.useQuery();
 
@@ -12,6 +15,45 @@ export default function AuditPage() {
       <div className="mb-6">
         <h2 className="text-lg font-semibold text-foreground">감사 체인 (Audit Chain)</h2>
         <p className="text-sm text-muted-foreground">불변 감사 로그 및 체인 무결성 검증</p>
+      </div>
+
+      {/* 디바이스 선택 */}
+      <Card className="bg-card border-border mb-6">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold text-foreground">대상 디바이스 선택</CardTitle>
+          <p className="text-xs text-muted-foreground">이식 완료된 디바이스를 선택하면 해당 디바이스의 감사 로그를 확인합니다.</p>
+        </CardHeader>
+        <CardContent className="flex items-center gap-4">
+          <DeviceSelector
+            value={selectedDevice}
+            onChange={setSelectedDevice}
+            className="flex-1"
+          />
+        </CardContent>
+      </Card>
+
+      {/* 디바이스 미선택 시 안내 */}
+      {!selectedDevice && (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <Shield className="w-12 h-12 text-gray-600 mb-4" />
+          <h3 className="text-lg font-medium text-gray-400 mb-2">디바이스를 선택하세요</h3>
+          <p className="text-sm text-gray-500 max-w-md">
+            이식 완료된 디바이스를 선택하면 해당 디바이스의 감사 체인 데이터가 표시됩니다.
+          </p>
+        </div>
+      )}
+
+      {selectedDevice && (
+        <>
+      {/* 연결 상태 배너 */}
+      <div className="p-3 rounded-lg border border-cyan-500/20 bg-cyan-500/5 mb-6">
+        <div className="flex items-center gap-3">
+          <Zap className="w-4 h-4 text-cyan-400" />
+          <span className="text-sm font-medium text-white">
+            감사 대상: <span className="text-cyan-300 font-semibold">{selectedDevice.deviceName}</span>
+          </span>
+          <span className="text-xs text-gray-400">({selectedDevice.deviceType})</span>
+        </div>
       </div>
 
       {/* Chain Integrity */}
@@ -70,6 +112,8 @@ export default function AuditPage() {
           )}
         </CardContent>
       </Card>
+      </>
+      )}
     </MIPLayout>
   );
 }

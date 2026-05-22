@@ -316,3 +316,11 @@
 
 - [x] 안전 모니터: 디바이스 선택 시 해당 디바이스의 로그/세션만 필터링 표시
 - [x] 안전 모니터: 이식 완료된 디바이스 자동 선택 (첫 번째 디바이스 자동 연결)
+
+## Phase 35: 보안/감사 페이지 디바이스 연동
+
+- [x] 경계 정책(PoliciesPage): DeviceSelector 추가 + 미선택 시 데이터 숨김
+- [x] 레드팀(RedteamPage): 미선택 시 데이터 숨김 + 연결 배너 추가
+- [x] 감사 체인(AuditPage): DeviceSelector 추가 + 미선택 시 데이터 숨김
+- [x] §14 격리층(IsolationLayerPage): 미선택 시 데이터 숨김 + 연결 배너 추가
+- [x] §14.6 원장 고정(LedgerAnchoringPage): DeviceSelector 추가 + 미선택 시 데이터 숨김

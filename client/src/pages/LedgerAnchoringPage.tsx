@@ -12,6 +12,7 @@ import {
   Database, AlertTriangle, Zap, ExternalLink, Copy,
 } from "lucide-react";
 import MIPLayout from "@/components/MIPLayout";
+import DeviceSelector, { type SelectedDevice } from "@/components/DeviceSelector";
 
 // ─── 타입 ─────────────────────────────────────────────────────────────────────
 
@@ -414,6 +415,8 @@ function DlqTab() {
 // ─── 메인 페이지 ──────────────────────────────────────────────────────────────
 
 export default function LedgerAnchoringPage() {
+  const [selectedDevice, setSelectedDevice] = useState<SelectedDevice | null>(null);
+
   return (
     <MIPLayout title="§14.6 Ledger Anchoring">
       <div className="p-6 space-y-6">
@@ -437,6 +440,45 @@ export default function LedgerAnchoringPage() {
               <ExternalLink className="w-3 h-3 mr-1" />
               외부 원장 연동
             </Badge>
+          </div>
+        </div>
+
+        {/* 디바이스 선택 */}
+        <Card className="bg-slate-800/50 border-slate-700">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-slate-300">대상 디바이스 선택</CardTitle>
+            <p className="text-xs text-slate-500">이식 완료된 디바이스를 선택하면 해당 디바이스의 원장 앱커링 상태를 확인합니다.</p>
+          </CardHeader>
+          <CardContent className="flex items-center gap-4">
+            <DeviceSelector
+              value={selectedDevice}
+              onChange={setSelectedDevice}
+              className="flex-1"
+            />
+          </CardContent>
+        </Card>
+
+        {/* 디바이스 미선택 시 안내 */}
+        {!selectedDevice && (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <Link2 className="w-12 h-12 text-gray-600 mb-4" />
+            <h3 className="text-lg font-medium text-gray-400 mb-2">디바이스를 선택하세요</h3>
+            <p className="text-sm text-gray-500 max-w-md">
+              이식 완료된 디바이스를 선택하면 해당 디바이스의 원장 앱커링 데이터가 표시됩니다.
+            </p>
+          </div>
+        )}
+
+        {selectedDevice && (
+          <>
+        {/* 연결 상태 배너 */}
+        <div className="p-3 rounded-lg border border-cyan-500/20 bg-cyan-500/5">
+          <div className="flex items-center gap-3">
+            <Zap className="w-4 h-4 text-cyan-400" />
+            <span className="text-sm font-medium text-white">
+              앱커링 대상: <span className="text-cyan-300 font-semibold">{selectedDevice.deviceName}</span>
+            </span>
+            <span className="text-xs text-gray-400">({selectedDevice.deviceType})</span>
           </div>
         </div>
 
@@ -467,6 +509,8 @@ export default function LedgerAnchoringPage() {
           <TabsContent value="anchor" className="mt-4"><ManualAnchorTab /></TabsContent>
           <TabsContent value="dlq" className="mt-4"><DlqTab /></TabsContent>
         </Tabs>
+          </>
+        )}
       </div>
     </MIPLayout>
   );

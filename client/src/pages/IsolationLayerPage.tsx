@@ -743,6 +743,30 @@ export default function IsolationLayerPage() {
         </CardContent>
       </Card>
 
+      {/* 디바이스 미선택 시 안내 */}
+      {!selectedDevice && (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <ShieldCheck className="w-12 h-12 text-gray-600 mb-4" />
+          <h3 className="text-lg font-medium text-gray-400 mb-2">디바이스를 선택하세요</h3>
+          <p className="text-sm text-gray-500 max-w-md">
+            이식 완료된 디바이스를 선택하면 해당 디바이스의 Isolation Layer 상태를 확인할 수 있습니다.
+          </p>
+        </div>
+      )}
+
+      {selectedDevice && (
+        <>
+      {/* 연결 상태 배너 */}
+      <div className="p-3 rounded-lg border border-cyan-500/20 bg-cyan-500/5 mb-4">
+        <div className="flex items-center gap-3">
+          <Zap className="w-4 h-4 text-cyan-400" />
+          <span className="text-sm font-medium text-white">
+            Isolation 대상: <span className="text-cyan-300 font-semibold">{selectedDevice.deviceName}</span>
+          </span>
+          <span className="text-xs text-gray-400">({selectedDevice.deviceType})</span>
+        </div>
+      </div>
+
       {/* §14 개요 카드 */}
       <div className="grid grid-cols-3 gap-3">
         {[
@@ -807,6 +831,8 @@ export default function IsolationLayerPage() {
           <ViolationStatsTab />
         </TabsContent>
       </Tabs>
+      </>
+      )}
     </div>
   );
 }
