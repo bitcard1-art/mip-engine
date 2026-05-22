@@ -307,3 +307,7 @@
 - [x] receivers.ts에서 packageId/userId를 package 내부에 주입 (LORE 호환)
 - [x] 기존 invalid 패키지 2개를 validated로 업데이트
 - [x] trust_verification 완화 — pending 디바이스에서도 이식 허용 (경고만 로깅)
+
+## Phase 33: MIP Integration Guide 문서
+
+- [x] docs/MIP-Integration-Guide.md 작성 (HMAC 인증, API 스펙, MIO 패키지 스키마, 8단계 이식 흐름, 프로토콜 옵션, 테스트 시나리오, 환경 변수)
