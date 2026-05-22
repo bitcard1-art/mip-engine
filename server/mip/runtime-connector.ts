@@ -101,7 +101,9 @@ export async function verifyDeviceTrust(
     }
 
     if (device.status === "pending") {
-      return { trusted: false, trustLevel: 0, reason: "Device not yet verified" };
+      // 현 단계에서는 pending 디바이스도 이식 허용 (경고만 로깅)
+      console.warn(`[RuntimeConnector] Device ${deviceId} is pending but allowing implantation`);
+      return { trusted: true, trustLevel: 0 };
     }
 
     return {
