@@ -43,6 +43,131 @@ MIP 생태계는 4개 서비스가 각자의 역할을 수행합니다.
 
 ---
 
+## 1.5 Safety Ownership 선언 — 책임 범위 명시
+
+> **MIP is a Persona Governance Layer, not a robotic hardware control system.**
+
+MIP는 상위 Persona 정책 런타임이며, 로봇의 물리적 하드웨어를 직접 제어하지 않습니다.
+
+### 1.5.1 MIP가 절대 직접 제어하지 않는 시스템
+
+| 시스템 | 설명 |
+|--------|------|
+| Motor Torque Controllers | 모터 토크 제어 |
+| Joint PWM Controllers | 관절 PWM 제어 |
+| Balance Controllers | 보행/균형 제어 |
+| Collision Avoidance Systems | 충돌 회피 시스템 |
+| Emergency Stop Runtime | 비상 정지 런타임 |
+| Real-time Safety Controllers | 실시간 안전 컨트롤러 |
+
+MIP는 오직 **고수준 Intent(의도), Persona 정책, 행동 제약 조건**만을 승인된 Runtime Connector를 통해 전달합니다.
+
+### 1.5.2 Runtime Isolation 계층 구조
+
+```
+┌────────────────────────────────────────────────────────────┐
+│  [MIP] Runtime Persona Sandbox                            │
+│  ─ Persona 정책 판정 / Ethical Boundary / Safety Monitor  │
+│  ─ Intent Request 생성 (하드웨어 명령 아님)              │
+└────────────────────────────────────────────────────────────┘
+                              │ Intent Only (하드웨어 명령 아님)
+                              ▼
+┌────────────────────────────────────────────────────────────┐
+│  [한결] Isolation Gateway                                 │
+│  ─ Intent → 명령 변환 / 권한 검증 / 디바이스 라우팅     │
+└────────────────────────────────────────────────────────────┘
+                              │ 디바이스 명령
+                              ▼
+┌────────────────────────────────────────────────────────────┐
+│  [로봇] Robot Safety Runtime  ← 제조사 영역                │
+│  ─ 충돌 회피 / 토크 제한 / 균형 제어 / E-Stop             │
+└────────────────────────────────────────────────────────────┘
+                              │ 하드웨어 명령
+                              ▼
+┌────────────────────────────────────────────────────────────┐
+│  [ROS2/DDS] → [하드웨어]                                 │
+│  ─ 모터 / 관절 / 센서 / 액추에이터                       │
+└────────────────────────────────────────────────────────────┘
+```
+
+### 1.5.3 책임 범위 매트릭스
+
+| 영역 | MIP 책임 | 한결 책임 | 로봇 제조사 책임 |
+|------|----------|----------|-------------|
+| Persona 정책 판정 | ● | | |
+| Ethical Boundary 검증 | ● | | |
+| Intent Request 생성 | ● | | |
+| Kill Switch 발동 | ● | | |
+| Safety Monitor 감지 | ● | | |
+| Intent → 명령 변환 | | ● | |
+| 디바이스 라우팅 | | ● | |
+| 명령 검증/승인 전달 | | ● | |
+| 모터 토크 제어 | | | ● |
+| 충돌 회피 | | | ● |
+| 균형/보행 제어 | | | ● |
+| Emergency Stop | | | ● |
+| 하드웨어 보호 | | | ● |
+
+### 1.5.4 DDS Topic Access Scope
+
+MIP의 Intent가 한결을 통해 로봇에 전달될 때, 다음 Topic 범위만 접근 가능합니다.
+
+**Allowed Topics (MIP Intent 전달 가능):**
+
+| Topic 패턴 | 설명 |
+|-------------|------|
+| `/persona/*` | Persona 상태/전환 |
+| `/emotion/*` | 감정 표현 요청 |
+| `/behavior/*` | 행동 의도 전달 |
+| `/speech/*` | 음성 출력 요청 |
+| `/gesture/*` | 제스처 요청 |
+
+**Restricted Topics (MIP 접근 불가):**
+
+| Topic 패턴 | 설명 | 소유권 |
+|-------------|------|--------|
+| `/motor/*` | 모터 직접 제어 | 로봇 제조사 |
+| `/joint/*` | 관절 PWM 제어 | 로봇 제조사 |
+| `/balance/*` | 균형/보행 제어 | 로봇 제조사 |
+| `/safety/*` | 안전 컨트롤러 | 로봇 제조사 |
+| `/firmware/*` | 펌웨어 업데이트 | 로봇 제조사 |
+| `/cmd_vel` | 속도 직접 제어 | 로봇 제조사 |
+
+### 1.5.5 Kill Switch 우선권
+
+> **Kill Switch overrides all active Runtime Persona states immediately.**
+
+- Persona보다 Safety가 항상 우선
+- Kill Switch 발동 시 모든 Persona 세션 즉시 종료
+- 로봇 측 E-Stop은 MIP와 독립적으로 동작 (로봇 제조사 영역)
+- MIP Kill Switch와 로봇 E-Stop은 서로 독립적이며, 둘 중 하나라도 발동되면 즉시 정지
+
+### 1.5.6 Persona Runtime Crash Isolation
+
+MIP Persona Runtime의 장애/종료는 다음 시스템에 절대 영향을 주지 않습니다:
+
+- Motion Stability Runtime
+- Safety Runtime
+- DDS Core Communication
+- Emergency Stop Systems
+- Hardware Protection Controllers
+
+MIP가 응답하지 않을 경우, 로봇은 마지막 안전 상태로 자동 복귀합니다 (Fail-safe).
+
+### 1.5.7 Intent Layer 명시
+
+> **MIP generates Intent Requests, not direct hardware execution commands.**
+
+| 구분 | MIP가 생성하는 것 | MIP가 생성하지 않는 것 |
+|------|-----------------|--------------------|
+| 예시 | "손을 흔들어 인사하라" (Intent) | "어깨 모터 30도 회전" (HW 명령) |
+| 예시 | "사용자에게 다가가라" (Intent) | "/cmd_vel linear.x=0.5" (HW 명령) |
+| 예시 | "감정 표현: 기쁨" (Intent) | "LED PWM 255" (HW 명령) |
+
+**최종 물리 실행 결정권은 항상 로봇 제조사의 Safety Runtime에 있습니다.**
+
+---
+
 ## 2. 인증 (HMAC-SHA256)
 
 모든 서비스 간 통신은 HMAC-SHA256 서명으로 보호됩니다. Replay Attack 방지를 위해 ±5분 시간 윈도우를 적용합니다.
