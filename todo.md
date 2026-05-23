@@ -334,3 +334,9 @@
 - [x] MIP 자체에서 Mock MIO 패키지 생성 프로시저 추가 (LORE 없이 테스트 가능)
 - [x] 프론트엔드에 Mock 패키지 생성 버튼/UI 추가
 - [x] server/routers/mock-package.test.ts — Mock 패키지 생성 프로시저 테스트 (5개 통과)
+
+## Phase 37: LORE 웹훅 수신 500 에러 수정
+- [x] DID 서명 검증에서 signature.created 밀리초 자동 변환 (did.ts)
+- [x] DID proof 형식 검증 완화: hex 외 base64/JWT 형식도 허용 (did.ts)
+- [x] handlePackageSubmit에 전체 try-catch 추가 (receivers.ts)
+- [x] 로컬+배포 서버에서 LORE 형식 payload 202 성공 확인

@@ -125,12 +125,17 @@ export function verifyDIDSignatureFull(
     }
 
     const now = Math.floor(Date.now() / 1000);
-    if (signature.created > now + 300) {
+    // LORE 호환: created가 밀리초(13자리)로 전달될 수 있으므로 자동 변환
+    let createdSec = signature.created;
+    if (createdSec > 1e12) {
+      createdSec = Math.floor(createdSec / 1000);
+    }
+    if (createdSec > now + 300) {
       return { valid: false, reason: "Signature created in the future" };
     }
 
     // LORE 패키지는 생성 후 수일 뒤에 도착할 수 있으므로 7일로 완화
-    if (now - signature.created > 604800) {
+    if (now - createdSec > 604800) {
       return { valid: false, reason: "Signature expired (older than 7 days)" };
     }
 
@@ -157,8 +162,11 @@ export function verifyDIDSignatureFull(
       if (identifier.length < 1) {
         return { valid: false, reason: "DID identifier empty" };
       }
-      if (!/^[0-9a-f]{64,}$/i.test(signature.proof)) {
-        return { valid: false, reason: "Invalid proof hex format" };
+      // LORE 호환: proof는 hex(64+자) 또는 base64/JWT 형식 모두 허용
+      const isHex = /^[0-9a-f]{64,}$/i.test(signature.proof);
+      const isBase64OrJWT = signature.proof.length >= 32 && /^[A-Za-z0-9+/=._-]+$/.test(signature.proof);
+      if (!isHex && !isBase64OrJWT) {
+        return { valid: false, reason: "Invalid proof format (expected hex or base64)" };
       }
       return { valid: true };
     }

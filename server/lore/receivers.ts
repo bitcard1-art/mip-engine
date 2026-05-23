@@ -25,99 +25,109 @@ import type { MIOPackage } from "../../shared/mip-types";
 
 // ─── 인터페이스 1: MIO Package 전송 수신 ────────────────────────────────────
 export async function handlePackageSubmit(req: Request, res: Response): Promise<void> {
-  const { eventId, packageId, userId, package: pkg, eventType } = req.body as {
-    eventId: string;
-    packageId: string;
-    userId: string;
-    package: MIOPackage;
-    eventType: string;
-    generatedAt: number;
-  };
+  try {
+    const { eventId, packageId, userId, package: pkg, eventType } = req.body as {
+      eventId: string;
+      packageId: string;
+      userId: string;
+      package: MIOPackage;
+      eventType: string;
+      generatedAt: number;
+    };
 
-  if (!eventId || !packageId || !userId || !pkg) {
-    res.status(400).json({ error: "MISSING_FIELDS", message: "필수 필드가 누락되었습니다." });
-    return;
-  }
-
-  const db = await getDb();
-
-  // 멱등성 검사
-  if (db) {
-    const { eq } = await import("drizzle-orm");
-    const existing = await db
-      .select()
-      .from(lorePackageEvents)
-      .where(eq(lorePackageEvents.eventId, eventId))
-      .limit(1);
-    if (existing.length > 0) {
-      res.status(200).json({ status: "already_processed", packageId });
+    if (!eventId || !packageId || !userId || !pkg) {
+      res.status(400).json({ error: "MISSING_FIELDS", message: "필수 필드가 누락되었습니다." });
       return;
     }
-  }
 
-  // MIO Package 전체 검증 (DID 서명, TTL, 구조)
-  // LORE는 packageId/userId를 최상위에 보내므로 package 내부에 주입
-  const fullPkg = { ...pkg, packageId: pkg.packageId || packageId, userId: pkg.userId || userId };
-  const validationResult = await receiveAndValidatePackage(fullPkg);
+    const db = await getDb();
 
-  // 이벤트 로그 저장
-  if (db) {
-    await db.insert(lorePackageEvents).values({
-      id: nanoid(),
-      eventId,
-      eventType: eventType || "lore_package_ready",
+    // 멱등성 검사
+    if (db) {
+      const { eq } = await import("drizzle-orm");
+      const existing = await db
+        .select()
+        .from(lorePackageEvents)
+        .where(eq(lorePackageEvents.eventId, eventId))
+        .limit(1);
+      if (existing.length > 0) {
+        res.status(200).json({ status: "already_processed", packageId });
+        return;
+      }
+    }
+
+    // MIO Package 전체 검증 (DID 서명, TTL, 구조)
+    // LORE는 packageId/userId를 최상위에 보내므로 package 내부에 주입
+    const fullPkg = { ...pkg, packageId: pkg.packageId || packageId, userId: pkg.userId || userId };
+    const validationResult = await receiveAndValidatePackage(fullPkg);
+
+    // 이벤트 로그 저장
+    if (db) {
+      await db.insert(lorePackageEvents).values({
+        id: nanoid(),
+        eventId,
+        eventType: eventType || "lore_package_ready",
+        packageId,
+        userId,
+        payload: JSON.stringify(req.body),
+        processedAt: Date.now(),
+        status: validationResult.valid ? "processed" : "failed",
+        createdAt: Date.now(),
+      });
+    }
+
+    if (!validationResult.valid) {
+      // 검증 실패 → Lore에 실패 콜백 전송
+      const failureCode = validationResult.errors.some((e) => e.includes("DID"))
+        ? "DID_SIGNATURE_INVALID"
+        : validationResult.errors.some((e) => e.includes("TTL") || e.includes("expired"))
+        ? "TTL_EXPIRED"
+        : validationResult.errors.some((e) => e.includes("version"))
+        ? "VERSION_MISMATCH"
+        : "STRUCTURE_INVALID";
+
+      await sendLoreWebhook("mip_package_validation_failed", {
+        packageId,
+        userId,
+        failureCode,
+        errors: validationResult.errors,
+        retryable: failureCode !== "TTL_EXPIRED",
+        timestamp: Date.now(),
+      });
+
+      res.status(400).json({
+        status: "rejected",
+        code: "VALIDATION_FAILED",
+        errors: validationResult.errors,
+        message: "MIO Package 검증에 실패했습니다.",
+      });
+      return;
+    }
+
+    // 검증 성공 → Lore에 수신 확인 콜백 전송
+    await sendLoreWebhook("mip_package_received", {
       packageId,
       userId,
-      payload: JSON.stringify(req.body),
-      processedAt: Date.now(),
-      status: validationResult.valid ? "processed" : "failed",
-      createdAt: Date.now(),
+      watermark: validationResult.watermark,
+      receivedAt: Date.now(),
+      validUntil: pkg.ttl * 1000,
     });
-  }
 
-  if (!validationResult.valid) {
-    // 검증 실패 → Lore에 실패 콜백 전송
-    const failureCode = validationResult.errors.some((e) => e.includes("DID"))
-      ? "DID_SIGNATURE_INVALID"
-      : validationResult.errors.some((e) => e.includes("TTL") || e.includes("expired"))
-      ? "TTL_EXPIRED"
-      : validationResult.errors.some((e) => e.includes("version"))
-      ? "VERSION_MISMATCH"
-      : "STRUCTURE_INVALID";
-
-    await sendLoreWebhook("mip_package_validation_failed", {
+    res.status(202).json({
+      status: "accepted",
       packageId,
-      userId,
-      failureCode,
-      errors: validationResult.errors,
-      retryable: failureCode !== "TTL_EXPIRED",
-      timestamp: Date.now(),
+      watermark: validationResult.watermark,
+      message: "MIO Package가 수신되어 검증을 완료했습니다.",
     });
-
-    res.status(400).json({
-      status: "rejected",
-      code: "VALIDATION_FAILED",
-      errors: validationResult.errors,
-      message: "MIO Package 검증에 실패했습니다.",
-    });
-    return;
+  } catch (err) {
+    console.error("[handlePackageSubmit] Unhandled error:", err);
+    if (!res.headersSent) {
+      res.status(500).json({
+        error: "INTERNAL_ERROR",
+        message: `패키지 처리 중 내부 오류가 발생했습니다: ${err instanceof Error ? err.message : String(err)}`,
+      });
+    }
   }
-
-  // 검증 성공 → Lore에 수신 확인 콜백 전송
-  await sendLoreWebhook("mip_package_received", {
-    packageId,
-    userId,
-    watermark: validationResult.watermark,
-    receivedAt: Date.now(),
-    validUntil: pkg.ttl * 1000,
-  });
-
-  res.status(202).json({
-    status: "accepted",
-    packageId,
-    watermark: validationResult.watermark,
-    message: "MIO Package가 수신되어 검증을 완료했습니다.",
-  });
 }
 
 // ─── 인터페이스 2: Package 갱신 알림 ────────────────────────────────────────
