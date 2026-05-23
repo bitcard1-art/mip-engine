@@ -886,4 +886,145 @@ hangyeolRouter.post(
   }
 );
 
+// ─── 17. MIO Package (Runtime Persona) 조회 ─────────────────
+// GET /api/hangyeol/mio/package?implantationId={id}
+// 이식 완료된 디바이스의 Runtime Persona(DNA/pattern) 데이터 조회
+hangyeolRouter.get(
+  "/mio/package",
+  hangyeolHmacMiddleware,
+  async (req, res) => {
+    try {
+      const { implantationId } = req.query as { implantationId?: string };
+      if (!implantationId) {
+        res.status(400).json({
+          error: "MISSING_IMPLANTATION_ID",
+          message: "implantationId 쿼리 파라미터가 필요합니다.",
+        });
+        return;
+      }
+
+      const db = await getDb();
+      if (!db) {
+        res.status(500).json({ error: "DB_UNAVAILABLE" });
+        return;
+      }
+
+      const { eq } = await import("drizzle-orm");
+      const { mipImplantations, mipPackageVersions, mipCoreIdentities } = await import("../../drizzle/schema");
+
+      // 1. 이식 레코드 조회
+      const [implantation] = await db
+        .select()
+        .from(mipImplantations)
+        .where(eq(mipImplantations.id, implantationId))
+        .limit(1);
+
+      if (!implantation) {
+        res.status(404).json({
+          error: "IMPLANTATION_NOT_FOUND",
+          message: "이식 레코드를 찾을 수 없습니다.",
+        });
+        return;
+      }
+
+      if (implantation.status !== "completed") {
+        res.status(403).json({
+          error: "IMPLANTATION_NOT_COMPLETED",
+          message: `이식이 완료되지 않았습니다. 현재 상태: ${implantation.status}, 단계: ${implantation.stage}`,
+        });
+        return;
+      }
+
+      // 2. 패키지 버전 스냅샷에서 DNA/pattern 원본 조회
+      const { mipPackages } = await import("../../drizzle/schema");
+      const [pkg] = await db
+        .select()
+        .from(mipPackages)
+        .where(eq(mipPackages.id, implantation.packageId))
+        .limit(1);
+
+      // 3. 최신 버전 스냅샷 조회 (DNA/pattern 원본 포함)
+      const { desc } = await import("drizzle-orm");
+      const [latestVersion] = await db
+        .select()
+        .from(mipPackageVersions)
+        .where(eq(mipPackageVersions.packageId, implantation.packageId))
+        .orderBy(desc(mipPackageVersions.versionNumber))
+        .limit(1);
+
+      // 4. Core Identity 조회
+      const [coreIdentity] = await db
+        .select()
+        .from(mipCoreIdentities)
+        .where(eq(mipCoreIdentities.implantationId, implantationId))
+        .limit(1);
+
+      // 5. lorePackageEvents에서 원본 payload 조회 (DNA/pattern 원본 데이터)
+      const { lorePackageEvents } = await import("../../drizzle/schema");
+      const [event] = await db
+        .select()
+        .from(lorePackageEvents)
+        .where(eq(lorePackageEvents.packageId, implantation.packageId))
+        .limit(1);
+
+      let dna: unknown = null;
+      let pattern: unknown = null;
+      let context: unknown = null;
+
+      // 우선순위: 버전 스냅샷 > 원본 이벤트 payload > 패키지 contextJson
+      if (latestVersion?.dnaSnapshot) {
+        try { dna = JSON.parse(latestVersion.dnaSnapshot); } catch {}
+      }
+      if (latestVersion?.patternSnapshot) {
+        try { pattern = JSON.parse(latestVersion.patternSnapshot); } catch {}
+      }
+      if (latestVersion?.contextJson) {
+        try { context = JSON.parse(latestVersion.contextJson); } catch {}
+      }
+
+      // 버전 스냅샷에 없으면 원본 이벤트 payload에서 추출
+      if ((!dna || !pattern) && event?.payload) {
+        try {
+          const eventPayload = JSON.parse(event.payload);
+          const pkgData = eventPayload.package || eventPayload;
+          if (!dna && pkgData.dna) dna = pkgData.dna;
+          if (!pattern && pkgData.pattern) pattern = pkgData.pattern;
+          if (!context && pkgData.context) context = pkgData.context;
+        } catch {}
+      }
+
+      // contextJson fallback
+      if (!context && pkg?.contextJson) {
+        try { context = JSON.parse(pkg.contextJson); } catch {}
+      }
+
+      res.json({
+        success: true,
+        implantationId,
+        packageId: implantation.packageId,
+        deviceId: implantation.deviceId,
+        userId: implantation.userId,
+        version: pkg?.packageVersion || "2.0",
+        status: implantation.status,
+        stage: implantation.stage,
+        dna,
+        pattern,
+        context,
+        coreIdentity: coreIdentity ? {
+          loreDnaHash: coreIdentity.loreDnaHash,
+          personaPatternHash: coreIdentity.personaPatternHash,
+          emotionalState: coreIdentity.emotionalStateJson ? JSON.parse(coreIdentity.emotionalStateJson) : null,
+          longTermMemoryRef: coreIdentity.longTermMemoryRef ? JSON.parse(coreIdentity.longTermMemoryRef) : null,
+          integrityHash: coreIdentity.integrityHash,
+        } : null,
+        ttl: pkg?.ttl,
+        completedAt: implantation.completedAt,
+      });
+    } catch (err) {
+      console.error("[MIO/Package] Runtime Persona 조회 오류:", err);
+      res.status(500).json({ error: "INTERNAL_ERROR", message: "내부 서버 오류" });
+    }
+  }
+);
+
 export default hangyeolRouter;
