@@ -399,6 +399,61 @@ export const mipRouter = router({
           message: `LORE에 ${selectedPersonas.length}개 자아 패키지 생성을 요청했습니다.`,
         };
       }),
+    generateMock: protectedProcedure
+      .input(z.object({
+        personas: z.array(z.string()).min(1),
+        purpose: z.enum(["humanoid_implant", "software_runtime", "iot_device"]).default("software_runtime"),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { generatePackageWatermark, sha256Hash } = await import("../lib/hmac");
+        const { appendAuditChain } = await import("../lib/audit");
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB 연결 실패" });
+        const packageId = `pkg-mock-${Date.now()}`;
+        const userId = String(ctx.user.id);
+        const ttl = Math.floor(Date.now() / 1000) + 86400;
+        const dna = {
+          indicators: Object.fromEntries(
+            input.personas.map(p => [`${p}_core`, Math.round(Math.random() * 40 + 60)])
+          ),
+          version: "2.0",
+          generatedAt: Date.now(),
+        };
+        const pattern = {
+          behavioral: { adaptability: 0.8, consistency: 0.9 },
+          emotional: { stability: 0.75, expressiveness: 0.6 },
+          relational: { empathy: 0.85, boundaries: 0.7 },
+          version: "2.0",
+        };
+        const watermark = generatePackageWatermark(packageId, userId, ttl);
+        await db.insert(mipPackages).values({
+          id: packageId,
+          userId,
+          packageVersion: "2.0",
+          didSignature: JSON.stringify({ did: `did:mip:mock:${nanoid(8)}`, proof: "mock-proof", verificationMethod: "mock", created: Date.now() }),
+          hmacWatermark: watermark,
+          ttl,
+          status: "validated",
+          validationErrors: undefined,
+          dnaHash: sha256Hash(JSON.stringify(dna)),
+          patternHash: sha256Hash(JSON.stringify(pattern)),
+          contextJson: JSON.stringify({ purpose: input.purpose, deviceId: "pending", environment: "mock", constraints: [] }),
+          sourceSystem: "mock",
+          receivedAt: Date.now(),
+          validatedAt: Date.now(),
+        });
+        await appendAuditChain({
+          entityType: "package",
+          entityId: packageId,
+          action: "mock_package_generated",
+          actorId: userId,
+          data: { packageId, personas: input.personas, purpose: input.purpose },
+        });
+        return {
+          packageId,
+          message: `Mock MIO 패키지가 생성되었습니다 (${input.personas.length}개 자아).`,
+        };
+      }),
   }),
 
   // ── Sandbox ───────────────────────────────────────────────────────────────

@@ -20,10 +20,11 @@ import {
   Package, CheckCircle2, XCircle, Clock, AlertTriangle,
   RefreshCw, ChevronRight, Dna, Brain, Network, Shield,
   Calendar, Hash, Zap, Send, Sparkles, Heart, Eye,
-  Users, Palette, Scale, BookOpen, Link2
+  Users, Palette, Scale, BookOpen, Link2, Beaker
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
+import MockPackageDialog from "@/components/MockPackageDialog";
 
 type PackageStatus = "received" | "validated" | "invalid" | "expired";
 
@@ -398,6 +399,7 @@ export default function PackagesPage() {
   const [, setLocation] = useLocation();
   const [selectedPkg, setSelectedPkg] = useState<string | null>(null);
   const [showRequestDialog, setShowRequestDialog] = useState(false);
+  const [showMockDialog, setShowMockDialog] = useState(false);
   const { data: packages, isLoading, refetch, isFetching } = trpc.mip.packages.listAll.useQuery(undefined, {
     refetchInterval: 30000,
   });
@@ -432,14 +434,25 @@ export default function PackagesPage() {
               <span className="hidden sm:inline">새로고침</span>
             </Button>
           </div>
-          <Button
-            size="sm"
-            onClick={() => setShowRequestDialog(true)}
-            className="gap-2 bg-primary hover:bg-primary/90 w-full sm:w-auto"
-          >
-            <Sparkles className="w-4 h-4" />
-            LORE에 패키지 요청
-          </Button>
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              size="sm"
+              onClick={() => setShowRequestDialog(true)}
+              className="gap-2 bg-primary hover:bg-primary/90"
+            >
+              <Sparkles className="w-4 h-4" />
+              LORE에 패키지 요청
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setShowMockDialog(true)}
+              className="gap-2 border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+            >
+              <Beaker className="w-4 h-4" />
+              Mock 패키지 생성
+            </Button>
+          </div>
         </div>
 
         {/* 통계 카드 */}
@@ -486,13 +499,23 @@ export default function PackagesPage() {
                   LORE에 패키지를 요청하거나, LORE에서 직접 전송하면 여기에 표시됩니다.
                 </p>
               </div>
-              <Button
-                onClick={() => setShowRequestDialog(true)}
-                className="gap-2"
-              >
-                <Sparkles className="w-4 h-4" />
-                LORE에 패키지 요청하기
-              </Button>
+              <div className="flex gap-2 flex-wrap justify-center">
+                <Button
+                  onClick={() => setShowRequestDialog(true)}
+                  className="gap-2"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  LORE에 패키지 요청
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowMockDialog(true)}
+                  className="gap-2 border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+                >
+                  <Beaker className="w-4 h-4" />
+                  Mock 패키지 생성
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ) : (
@@ -527,7 +550,7 @@ export default function PackagesPage() {
                             <Clock className="w-3 h-3" />
                             {formatTtl(ttlSec)}
                           </span>
-                          <span className="uppercase font-medium text-primary/70">{pkg.sourceSystem}</span>
+                          <span className={`uppercase font-medium ${pkg.sourceSystem === "mock" ? "text-amber-400" : "text-primary/70"}`}>{pkg.sourceSystem}</span>
                           <span>v{pkg.packageVersion}</span>
                         </div>
                       </div>
@@ -569,6 +592,12 @@ export default function PackagesPage() {
       <RequestPackageDialog
         open={showRequestDialog}
         onClose={() => setShowRequestDialog(false)}
+      />
+
+      {/* Mock 패키지 생성 다이얼로그 */}
+      <MockPackageDialog
+        open={showMockDialog}
+        onClose={() => setShowMockDialog(false)}
       />
     </MIPLayout>
   );

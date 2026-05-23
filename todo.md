@@ -328,3 +328,9 @@
 ## Phase 36: 2차 인증 게이트 (접근 코드)
 
 - [x] 로그인 후 고정 코드 "2148782859" 입력 시 대시보드 진입하는 2차 인증 게이트 구현
+
+## Phase 36: Mock MIO 패키지 생성 기능
+
+- [x] MIP 자체에서 Mock MIO 패키지 생성 프로시저 추가 (LORE 없이 테스트 가능)
+- [x] 프론트엔드에 Mock 패키지 생성 버튼/UI 추가
+- [x] server/routers/mock-package.test.ts — Mock 패키지 생성 프로시저 테스트 (5개 통과)
