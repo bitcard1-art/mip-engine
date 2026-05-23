@@ -29,7 +29,7 @@ export default function LandingPage() {
         <div className="flex items-center gap-3">
           {!loading && (
             isAuthenticated ? (
-              <Link href="/dashboard">
+              <Link href="/access-gate">
                 <Button size="sm">대시보드 <ChevronRight className="w-3 h-3 ml-1" /></Button>
               </Link>
             ) : (
@@ -57,7 +57,7 @@ export default function LandingPage() {
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           {isAuthenticated ? (
-            <Link href="/dashboard">
+            <Link href="/access-gate">
               <Button size="lg" className="gap-2">
                 대시보드 시작 <ChevronRight className="w-4 h-4" />
               </Button>

@@ -11,6 +11,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { isAccessVerified, clearAccessVerification } from "@/pages/AccessGatePage";
 
 interface NavItem {
   path: string;
@@ -72,7 +73,7 @@ export default function MIPLayout({ children, title }: MIPLayoutProps) {
   const [location] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const logoutMutation = trpc.auth.logout.useMutation({
-    onSuccess: () => { window.location.href = "/"; },
+    onSuccess: () => { clearAccessVerification(); window.location.href = "/"; },
     onError: () => toast.error("로그아웃 실패"),
   });
 
@@ -98,6 +99,16 @@ export default function MIPLayout({ children, title }: MIPLayoutProps) {
             로그인
           </Button>
         </div>
+      </div>
+    );
+  }
+
+  // 2차 인증 게이트: 접근 코드 미입력 시 게이트 페이지로 리다이렉트
+  if (!isAccessVerified()) {
+    window.location.href = "/access-gate";
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }

@@ -324,3 +324,7 @@
 - [x] 감사 체인(AuditPage): DeviceSelector 추가 + 미선택 시 데이터 숨김
 - [x] §14 격리층(IsolationLayerPage): 미선택 시 데이터 숨김 + 연결 배너 추가
 - [x] §14.6 원장 고정(LedgerAnchoringPage): DeviceSelector 추가 + 미선택 시 데이터 숨김
+
+## Phase 36: 2차 인증 게이트 (접근 코드)
+
+- [x] 로그인 후 고정 코드 "2148782859" 입력 시 대시보드 진입하는 2차 인증 게이트 구현

@@ -20,11 +20,13 @@ import EmotionalRiskPage from "./pages/EmotionalRiskPage";
 import DnaRollbackPage from "./pages/DnaRollbackPage";
 import IsolationLayerPage from "./pages/IsolationLayerPage";
 import LedgerAnchoringPage from "./pages/LedgerAnchoringPage";
+import AccessGatePage from "./pages/AccessGatePage";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={LandingPage} />
+      <Route path="/access-gate" component={AccessGatePage} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/devices" component={DevicesPage} />
       <Route path="/implantations" component={ImplantationsPage} />
