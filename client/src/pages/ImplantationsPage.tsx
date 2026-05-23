@@ -1,6 +1,6 @@
 import MIPLayout from "@/components/MIPLayout";
 import { trpc } from "@/lib/trpc";
-import { Component, useState, type ReactNode } from "react";
+import React, { Component, useState, useEffect, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 // Input removed - using Select for packageId
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -240,6 +240,13 @@ export default function ImplantationsPage() {
   const { data: devices } = trpc.mip.devices.listAll.useQuery();
   const { data: packages, isLoading: packagesLoading } = trpc.mip.packages.listAll.useQuery();
 
+  // 패키지가 1개뿐이면 자동 선택
+  useEffect(() => {
+    if (packages && packages.length === 1 && !form.packageId) {
+      setForm((f) => ({ ...f, packageId: packages[0].id }));
+    }
+  }, [packages]);
+
   const startMutation = trpc.mip.implant.start.useMutation({
     onSuccess: (data) => {
       toast.success("이식 프로세스 시작됨");
@@ -294,32 +301,48 @@ export default function ImplantationsPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">MIO Package 선택</label>
-              <Select value={form.packageId} onValueChange={(v) => setForm({ ...form, packageId: v })} disabled={packagesLoading}>
-                <SelectTrigger className="bg-input border-border text-foreground">
-                  <SelectValue placeholder={packagesLoading ? "패키지 로딩 중..." : "패키지 선택..."} />
-                </SelectTrigger>
-                <SelectContent className="bg-card border-border">
-                  {packages && packages.length > 0 ? (
-                    packages.map((pkg) => {
-                      let pkgName = pkg.id;
-                      try {
-                        const ctx = pkg.contextJson ? JSON.parse(pkg.contextJson) : null;
-                        if (ctx?.name) pkgName = ctx.name;
-                      } catch {}
-                      return (
-                        <SelectItem key={pkg.id} value={pkg.id}>
-                          {pkgName}
-                        </SelectItem>
-                      );
-                    })
-                  ) : (
-                    <SelectItem value="__none__" disabled>등록된 패키지가 없습니다</SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
+            {packages && packages.length === 1 ? (
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">MIO Package</label>
+                <div className="bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground">
+                  {(() => {
+                    let pkgName = packages[0].id;
+                    try {
+                      const ctx = packages[0].contextJson ? JSON.parse(packages[0].contextJson) : null;
+                      if (ctx?.name) pkgName = ctx.name;
+                    } catch {}
+                    return pkgName;
+                  })()}
+                </div>
+              </div>
+            ) : (
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">MIO Package 선택</label>
+                <Select value={form.packageId} onValueChange={(v) => setForm({ ...form, packageId: v })} disabled={packagesLoading}>
+                  <SelectTrigger className="bg-input border-border text-foreground">
+                    <SelectValue placeholder={packagesLoading ? "패키지 로딩 중..." : "패키지 선택..."} />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border">
+                    {packages && packages.length > 0 ? (
+                      packages.map((pkg) => {
+                        let pkgName = pkg.id;
+                        try {
+                          const ctx = pkg.contextJson ? JSON.parse(pkg.contextJson) : null;
+                          if (ctx?.name) pkgName = ctx.name;
+                        } catch {}
+                        return (
+                          <SelectItem key={pkg.id} value={pkg.id}>
+                            {pkgName}
+                          </SelectItem>
+                        );
+                      })
+                    ) : (
+                      <SelectItem value="__none__" disabled>등록된 패키지가 없습니다</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">연결 프로토콜</label>
               <Select value={form.protocol} onValueChange={(v) => setForm({ ...form, protocol: v as any })}>
