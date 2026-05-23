@@ -2,6 +2,7 @@ import { nanoid } from "nanoid";
 import { appendAuditChain } from "../lib/audit";
 import { sha256Hash } from "../lib/hmac";
 import { getDb } from "../db";
+import { sendImplantCompleteToHangyeol } from "../hangyeol/webhook-sender";
 import { mipImplantations, mipDevices, mipPackages } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { verifyDeviceTrust, activateRuntime } from "./runtime-connector";
@@ -374,11 +375,24 @@ async function runImplantationProcess(
 
     await updateStage("live_activation", "completed");
 
+    // 이식 완료 → 한결에 implantation_completed 콜백 전송
+    sendImplantCompleteToHangyeol({
+      implantationId,
+      deviceId: input.deviceId,
+      packageId: input.packageId,
+      userId: input.userId,
+      stage: "live_activation",
+      status: "completed",
+      completedAt: Date.now(),
+    }).catch((err) => {
+      console.error("[ImplantationEngine] 한결 콜백 전송 실패:", err);
+    });
+
     console.log(
-      `[ImplantationEngine] ✅ §14 Implantation completed: ${implantationId}`,
+      `[ImplantationEngine] \u2705 \u00a714 Implantation completed: ${implantationId}`,
       `| CoreIdentity: ${coreIdentityId}`,
       `| DeploymentSecurity: ${deploymentSecurityId} (${deploymentResult.securityLevel})`,
-      `| §14.2.5 Emotional Bridge: READY`
+      `| \u00a714.2.5 Emotional Bridge: READY`
     );
   } catch (err) {
     const currentStage = stageHistory.findLast((s) => s.status === "in_progress")?.stage || "device_registration";

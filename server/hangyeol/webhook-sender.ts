@@ -117,3 +117,98 @@ export async function sendCheckResultToHangyeol(
   console.error(`[HangyeolWebhook] 전송 실패 (${retries}회 재시도 후): checkId=${alert.checkId}`);
   return false;
 }
+
+/**
+ * 이식 완료 시 한결에 콜백 전송
+ * 한결이 이 정보를 받아 디바이스의 mipImplantId를 업데이트
+ */
+export interface ImplantCompletePayload {
+  implantationId: string;
+  deviceId: string;
+  packageId: string;
+  userId: string;
+  stage: string;
+  status: string;
+  completedAt: number;
+}
+
+export async function sendImplantCompleteToHangyeol(
+  payload: ImplantCompletePayload,
+  retries = 3
+): Promise<boolean> {
+  const hangyeolUrl = ENV.hangyeolServiceUrl;
+  if (!hangyeolUrl) {
+    console.warn("[HangyeolWebhook] HANGYEOL_SERVICE_URL 미설정, 이식 완료 콜백 건너뜀");
+    return false;
+  }
+
+  const body = JSON.stringify({
+    eventType: "mip_implant_completed",
+    ...payload,
+  });
+  const timestamp = Date.now().toString();
+  const signature = generateHangyeolSignature(body, timestamp);
+  const targetUrl = `${hangyeolUrl}/api/mip/implant-complete`;
+
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(targetUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Service-ID": "mip",
+          "X-Timestamp": timestamp,
+          "X-Signature": signature,
+        },
+        body,
+        signal: AbortSignal.timeout(10_000),
+      });
+
+      if (res.ok) {
+        console.log(
+          `[HangyeolWebhook] 이식 완료 콜백 전송 성공: implantationId=${payload.implantationId}, deviceId=${payload.deviceId}`
+        );
+        const db = await getDb();
+        if (db) {
+          await db.insert(mipWebhookSendLogs).values({
+            id: nanoid(),
+            target: "hangyeol",
+            eventType: "mip_implant_completed",
+            url: targetUrl,
+            statusCode: res.status,
+            success: 1,
+            attempts: attempt,
+            sentAt: Date.now(),
+          }).catch(() => {});
+        }
+        return true;
+      }
+      console.warn(`[HangyeolWebhook] implant-complete attempt ${attempt} failed: HTTP ${res.status}`);
+    } catch (err) {
+      console.error(`[HangyeolWebhook] implant-complete attempt ${attempt} error:`, err);
+    }
+
+    if (attempt < retries) {
+      await sleep(1000 * Math.pow(2, attempt - 1));
+    }
+  }
+
+  // 모두 실패
+  const db = await getDb();
+  if (db) {
+    await db.insert(mipWebhookSendLogs).values({
+      id: nanoid(),
+      target: "hangyeol",
+      eventType: "mip_implant_completed",
+      url: targetUrl,
+      success: 0,
+      attempts: retries,
+      errorMessage: "Max retries exceeded",
+      sentAt: Date.now(),
+    }).catch(() => {});
+  }
+  console.error(
+    `[HangyeolWebhook] 이식 완료 콜백 전송 실패 (${retries}회 재시도 후): implantationId=${payload.implantationId}`
+  );
+  return false;
+}

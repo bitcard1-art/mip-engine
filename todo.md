@@ -342,3 +342,4 @@
 - [x] 로컬+배포 서버에서 LORE 형식 payload 202 성공 확인
 - [x] 이식 페이지: MIO Package가 1개일 때 자동 선택 + 드롭다운 대신 고정 표시
 - [x] GET /api/hangyeol/mio/package?implantationId={id} 엔드포인트 추가 (Runtime Persona 조회)
+- [x] 이식 완료 시 한결에 mip_implant_completed 콜백 전송 (implantationId, deviceId, packageId 포함)
