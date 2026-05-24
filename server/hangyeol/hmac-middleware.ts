@@ -67,7 +67,7 @@ export function hangyeolHmacMiddleware(
   }
 
   const rawBody = (req as Request & { rawBody?: Buffer }).rawBody;
-  const bodyStr = rawBody ? rawBody.toString("utf8") : JSON.stringify(req.body);
+  const bodyStr = rawBody ? rawBody.toString("utf8") : (req.body !== undefined ? JSON.stringify(req.body) : "");
   const bodyHash = crypto.createHash("sha256").update(bodyStr).digest("hex");
 
   const valid = verifyHangyeolSignature(
