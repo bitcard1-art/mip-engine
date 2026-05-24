@@ -120,14 +120,26 @@ function StageProgress({ stage, status, stageHistory }: { stage: string; status:
   );
 }
 
-function ImplantationDetail({ implantationId }: { implantationId: string }) {
+function ImplantationDetail({ implantationId, packages }: { implantationId: string; packages?: any[] }) {
   const { data, isLoading, refetch } = trpc.mip.implant.status.useQuery({ implantationId }, { refetchInterval: 3000 });
-
+  const { data: implantations } = trpc.mip.implant.list.useQuery();
   if (isLoading) return <div className="py-4 text-center"><Loader2 className="w-5 h-5 animate-spin text-primary mx-auto" /></div>;
   if (!data) return <div className="py-4 text-center text-muted-foreground text-sm">데이터 없음</div>;
-
+  // 패키지 이름 조회
+  const implantRow = implantations?.find((i) => i.id === implantationId);
+  const pkg = packages?.find((p) => p.id === implantRow?.packageId);
+  let pkgLabel = implantRow?.packageId?.substring(0, 20) || "알 수 없음";
+  try {
+    const ctx = pkg?.contextJson ? JSON.parse(pkg.contextJson) : null;
+    if (ctx?.name) pkgLabel = ctx.name;
+  } catch {}
   return (
     <div className="space-y-4">
+      {/* 패키지 이름 */}
+      <div className="bg-primary/5 border border-primary/20 rounded-md px-3 py-2">
+        <p className="text-[11px] text-muted-foreground">Runtime Persona (MIO Package)</p>
+        <p className="text-sm font-medium text-primary">🧠 {pkgLabel}</p>
+      </div>
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium text-foreground">진행률: {data.progress}%</p>
@@ -396,6 +408,20 @@ export default function ImplantationsPage() {
                   onClick={() => setSelectedId(item.id)}
                 >
                   <CardContent className="p-4">
+                    {/* 패키지 이름 표시 */}
+                    {(() => {
+                      const pkg = packages?.find((p) => p.id === item.packageId);
+                      let pkgLabel = item.packageId?.substring(0, 16) || "알 수 없음";
+                      try {
+                        const ctx = pkg?.contextJson ? JSON.parse(pkg.contextJson) : null;
+                        if (ctx?.name) pkgLabel = ctx.name;
+                      } catch {}
+                      return (
+                        <div className="text-[11px] text-primary/80 font-medium mb-1.5 truncate">
+                          🧠 {pkgLabel}
+                        </div>
+                      );
+                    })()}
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs font-mono text-muted-foreground">{item.id.substring(0, 12)}...</span>
                       <div className="flex items-center gap-1.5">
@@ -441,7 +467,7 @@ export default function ImplantationsPage() {
               </CardHeader>
               <CardContent>
                 <DetailErrorBoundary key={selectedId}>
-                  <ImplantationDetail implantationId={selectedId} />
+                  <ImplantationDetail implantationId={selectedId} packages={packages} />
                 </DetailErrorBoundary>
               </CardContent>
             </Card>
