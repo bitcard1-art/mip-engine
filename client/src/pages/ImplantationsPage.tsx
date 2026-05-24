@@ -128,17 +128,18 @@ function ImplantationDetail({ implantationId, packages }: { implantationId: stri
   // 패키지 이름 조회
   const implantRow = implantations?.find((i) => i.id === implantationId);
   const pkg = packages?.find((p) => p.id === implantRow?.packageId);
-  let pkgLabel = implantRow?.packageId?.substring(0, 20) || "알 수 없음";
+  let pkgLabel = implantRow?.packageId || "알 수 없음";
   try {
     const ctx = pkg?.contextJson ? JSON.parse(pkg.contextJson) : null;
     if (ctx?.name) pkgLabel = ctx.name;
   } catch {}
   return (
     <div className="space-y-4">
-      {/* 패키지 이름 */}
-      <div className="bg-primary/5 border border-primary/20 rounded-md px-3 py-2">
+      {/* 패키지 이름 + 이식 ID */}
+      <div className="bg-primary/5 border border-primary/20 rounded-md px-3 py-2 space-y-1">
         <p className="text-[11px] text-muted-foreground">Runtime Persona (MIO Package)</p>
         <p className="text-sm font-medium text-primary">🧠 {pkgLabel}</p>
+        <p className="text-[11px] text-muted-foreground">Implantation ID: <span className="font-mono text-foreground/70">{implantationId}</span></p>
       </div>
       <div className="flex items-center justify-between">
         <div>
@@ -411,19 +412,19 @@ export default function ImplantationsPage() {
                     {/* 패키지 이름 표시 */}
                     {(() => {
                       const pkg = packages?.find((p) => p.id === item.packageId);
-                      let pkgLabel = item.packageId?.substring(0, 16) || "알 수 없음";
+                      let pkgLabel = item.packageId || "알 수 없음";
                       try {
                         const ctx = pkg?.contextJson ? JSON.parse(pkg.contextJson) : null;
                         if (ctx?.name) pkgLabel = ctx.name;
                       } catch {}
                       return (
-                        <div className="text-[11px] text-primary/80 font-medium mb-1.5 truncate">
+                        <div className="text-[11px] text-primary/80 font-medium mb-1.5">
                           🧠 {pkgLabel}
                         </div>
                       );
                     })()}
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-mono text-muted-foreground">{item.id.substring(0, 12)}...</span>
+                      <span className="text-xs font-mono text-muted-foreground break-all">{item.id}</span>
                       <div className="flex items-center gap-1.5">
                         {IMPLANTATION_STAGES.indexOf(item.stage as any) >= IMPLANTATION_STAGES.indexOf("runtime_binding") && (
                           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border text-green-400 border-green-500/30 bg-green-500/10 font-medium">
