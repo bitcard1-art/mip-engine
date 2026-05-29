@@ -9,7 +9,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell,
 } from "recharts";
-import { Activity, Shield, Cpu, MessageSquare, Zap, TrendingUp } from "lucide-react";
+import { Activity, Shield, Cpu, MessageSquare, Zap, TrendingUp, Link2, ArrowRight, Package } from "lucide-react";
 
 const DEVICE_TYPE_LABELS: Record<string, string> = {
   humanoid: "휴머노이드",
@@ -34,6 +34,13 @@ const SERVICE_COLORS: Record<string, string> = {
 };
 
 const DEVICE_COLORS = ["#06b6d4", "#8b5cf6", "#f59e0b", "#10b981", "#f43f5e", "#3b82f6"];
+
+const COLOR_MAP: Record<string, { bg: string; text: string; border: string; dot: string }> = {
+  cyan:    { bg: "bg-cyan-500/10",    text: "text-cyan-400",    border: "border-cyan-500/30",    dot: "bg-cyan-400" },
+  violet:  { bg: "bg-violet-500/10",  text: "text-violet-400",  border: "border-violet-500/30",  dot: "bg-violet-400" },
+  amber:   { bg: "bg-amber-500/10",   text: "text-amber-400",   border: "border-amber-500/30",   dot: "bg-amber-400" },
+  emerald: { bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/30", dot: "bg-emerald-400" },
+};
 
 function StatCard({ icon: Icon, label, value, sub, color }: {
   icon: React.ElementType;
@@ -60,6 +67,49 @@ function StatCard({ icon: Icon, label, value, sub, color }: {
   );
 }
 
+function ServiceCard({ service }: {
+  service: {
+    id: string;
+    name: string;
+    role: string;
+    endpoint: string | null;
+    lastActivity: number | null;
+    isActive: boolean;
+    via: string | null;
+    color: string;
+  };
+}) {
+  const c = COLOR_MAP[service.color] ?? COLOR_MAP.cyan;
+  return (
+    <div className={`rounded-lg border p-3 ${c.border} ${c.bg} space-y-2`}>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className={`w-2 h-2 rounded-full shrink-0 ${service.isActive ? c.dot + " animate-pulse" : "bg-muted-foreground/40"}`} />
+          <span className={`text-sm font-semibold ${c.text} truncate`}>{service.name}</span>
+        </div>
+        <Badge variant={service.isActive ? "default" : "outline"} className="text-xs shrink-0">
+          {service.isActive ? "연결됨" : "비활성"}
+        </Badge>
+      </div>
+      <p className="text-xs text-muted-foreground">{service.role}</p>
+      {service.via ? (
+        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+          <span>경유:</span>
+          <span className="font-mono text-amber-400">LORE</span>
+          <span className="text-muted-foreground/50">(간접 연결)</span>
+        </div>
+      ) : service.endpoint ? (
+        <p className="text-xs font-mono text-muted-foreground/70">{service.endpoint}</p>
+      ) : null}
+      {service.lastActivity && (
+        <p className="text-xs text-muted-foreground/60">
+          최근: {new Date(service.lastActivity).toLocaleString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export default function SdkMonitorPage() {
   const [days, setDays] = useState(7);
 
@@ -69,9 +119,12 @@ export default function SdkMonitorPage() {
   const { data: messageStats, isLoading: loadingMsg } = trpc.mip.sdkMonitor.messageStats.useQuery({ days });
   const { data: activeSessions, isLoading: loadingSession } = trpc.mip.sdkMonitor.activeSessions.useQuery();
   const { data: recentEvents, isLoading: loadingEvents } = trpc.mip.sdkMonitor.recentEvents.useQuery({ limit: 20 });
+  const { data: lorePackageStats, isLoading: loadingLore } = trpc.mip.sdkMonitor.lorePackageStats.useQuery({ days });
+  const { data: connectedServices, isLoading: loadingServices } = trpc.mip.sdkMonitor.connectedServices.useQuery();
 
   const totalApiCalls = dailyStats?.reduce((s, d) => s + d.total, 0) ?? 0;
   const totalBlocks = blockStats?.reduce((s, b) => s + b.count, 0) ?? 0;
+  const activeServiceCount = connectedServices?.filter(s => s.isActive).length ?? 0;
 
   return (
     <MIPLayout title="SDK 연계 현황">
@@ -107,11 +160,11 @@ export default function SdkMonitorPage() {
             color="bg-cyan-500/10"
           />
           <StatCard
-            icon={Cpu}
-            label="활성 Runtime 세션"
-            value={activeSessions?.length ?? 0}
-            sub="현재 실행 중"
-            color="bg-violet-500/10"
+            icon={Link2}
+            label="연결된 서비스"
+            value={activeServiceCount}
+            sub={`전체 ${connectedServices?.length ?? 0}개 중`}
+            color="bg-emerald-500/10"
           />
           <StatCard
             icon={Shield}
@@ -125,14 +178,60 @@ export default function SdkMonitorPage() {
             label={`메시지 검사 (${days}일)`}
             value={messageStats?.total?.toLocaleString() ?? 0}
             sub={`차단 ${messageStats?.blocked ?? 0}건`}
-            color="bg-emerald-500/10"
+            color="bg-violet-500/10"
           />
         </div>
+
+        {/* 연계 서비스 구조도 */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Link2 className="w-4 h-4 text-emerald-400" />
+              연계 서비스 현황
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loadingServices ? (
+              <div className="h-24 flex items-center justify-center text-muted-foreground text-sm">로딩 중...</div>
+            ) : (
+              <div className="space-y-3">
+                {/* 직접 연결 서비스 */}
+                <div>
+                  <p className="text-xs text-muted-foreground mb-2 font-medium">직접 연결 (Direct API)</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {connectedServices?.filter(s => !s.via).map(service => (
+                      <ServiceCard key={service.id} service={service} />
+                    ))}
+                  </div>
+                </div>
+
+                {/* 간접 연결 서비스 */}
+                {connectedServices?.some(s => s.via) && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <p className="text-xs text-muted-foreground font-medium">간접 연결 (LORE 경유)</p>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground/50">
+                        <ArrowRight className="w-3 h-3" />
+                        <span>LORE를 통해 MIP와 연동</span>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {connectedServices?.filter(s => s.via).map(service => (
+                        <ServiceCard key={service.id} service={service} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         <Tabs defaultValue="api" className="space-y-4">
           <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
             <TabsList className="w-max min-w-full sm:w-full">
               <TabsTrigger value="api" className="text-xs sm:text-sm px-2 sm:px-3">API 추이</TabsTrigger>
+              <TabsTrigger value="lore" className="text-xs sm:text-sm px-2 sm:px-3">LORE 패키지</TabsTrigger>
               <TabsTrigger value="implant" className="text-xs sm:text-sm px-2 sm:px-3">이식 현황</TabsTrigger>
               <TabsTrigger value="safety" className="text-xs sm:text-sm px-2 sm:px-3">안전 게이트</TabsTrigger>
               <TabsTrigger value="sessions" className="text-xs sm:text-sm px-2 sm:px-3">활성 세션</TabsTrigger>
@@ -175,6 +274,108 @@ export default function SdkMonitorPage() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* LORE 패키지 이벤트 (스폰지 포함) */}
+          <TabsContent value="lore">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Package className="w-4 h-4 text-amber-400" />
+                    LORE 패키지 이벤트 ({days}일)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {loadingLore ? (
+                    <div className="h-48 flex items-center justify-center text-muted-foreground text-sm">로딩 중...</div>
+                  ) : (
+                    <div className="space-y-3">
+                      {[
+                        { label: "전체 수신", key: "total", color: "bg-amber-500", textColor: "text-amber-400" },
+                        { label: "처리 완료", key: "processed", color: "bg-emerald-500", textColor: "text-emerald-400" },
+                        { label: "처리 실패", key: "failed", color: "bg-red-500", textColor: "text-red-400" },
+                      ].map(({ label, key, color, textColor }) => {
+                        const val = (lorePackageStats as any)?.[key] ?? 0;
+                        const total = lorePackageStats?.total || 1;
+                        const pct = key === "total" ? 100 : Math.round((val / total) * 100);
+                        return (
+                          <div key={key}>
+                            <div className="flex justify-between text-sm mb-1">
+                              <span className={textColor}>{label}</span>
+                              <span className="font-medium">{val}건{key !== "total" ? ` (${pct}%)` : ""}</span>
+                            </div>
+                            <div className="h-2 bg-muted rounded-full overflow-hidden">
+                              <div className={`h-full ${color} rounded-full transition-all`} style={{ width: `${pct}%` }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                      <div className="pt-2 border-t border-border">
+                        <p className="text-xs text-muted-foreground mb-2">이벤트 유형별</p>
+                        {lorePackageStats?.byType?.length ? (
+                          <div className="space-y-1">
+                            {lorePackageStats.byType.map((t, i) => (
+                              <div key={i} className="flex items-center justify-between text-xs">
+                                <span className="font-mono text-muted-foreground">{t.eventType}</span>
+                                <Badge variant="outline" className="text-xs">{t.count}건</Badge>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-muted-foreground/60">이벤트 없음</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-emerald-400" />
+                    스폰지 → LORE → MIP 연결 구조
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3 pt-2">
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      스폰지(Sponge)는 LORE를 통해 MIP와 간접 연결됩니다. 스폰지가 생성한 콘텐츠는 LORE에서 MIO 패키지로 변환된 후 MIP로 전달됩니다.
+                    </p>
+                    {/* 연결 흐름 시각화 */}
+                    <div className="flex items-center gap-1 flex-wrap">
+                      <div className="flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/30 rounded-lg px-3 py-2">
+                        <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                        <span className="text-xs font-semibold text-emerald-400">스폰지</span>
+                      </div>
+                      <ArrowRight className="w-3 h-3 text-muted-foreground/50 shrink-0" />
+                      <div className="flex items-center gap-1 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2">
+                        <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                        <span className="text-xs font-semibold text-amber-400">LORE</span>
+                      </div>
+                      <ArrowRight className="w-3 h-3 text-muted-foreground/50 shrink-0" />
+                      <div className="flex items-center gap-1 bg-primary/10 border border-primary/30 rounded-lg px-3 py-2">
+                        <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                        <span className="text-xs font-semibold text-primary">MIP</span>
+                      </div>
+                    </div>
+                    <div className="space-y-1 pt-1">
+                      {[
+                        { step: "1", desc: "스폰지가 콘텐츠/페르소나 데이터 생성" },
+                        { step: "2", desc: "LORE가 MIO 패키지로 변환 후 MIP 전송" },
+                        { step: "3", desc: "MIP가 패키지 검증 및 이식 파이프라인 실행" },
+                      ].map(({ step, desc }) => (
+                        <div key={step} className="flex items-start gap-2 text-xs text-muted-foreground">
+                          <span className="w-4 h-4 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">{step}</span>
+                          <span>{desc}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           {/* 이식 현황 */}

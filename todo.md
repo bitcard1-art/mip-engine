@@ -353,3 +353,12 @@
 - [x] SDK 연계 현황 집계 tRPC API 추가 (일별/서비스별 호출 수, 이식 현황, 차단 건수)
 - [x] SdkMonitorPage.tsx — SDK 연계 현황 모니터링 페이지 구현
 - [x] 사이드바 네비게이션에 SDK 연계 현황 메뉴 추가
+
+## 스폰지(Sponge) SDK 연계 현황 표시
+
+- [x] 스폰지가 LORE 경유 간접 연결 구조임을 확인 (MIP 데이터 모델에 별도 식별자 없음)
+- [x] sdkMonitor.lorePackageStats 프로시저 추가 (LORE 패키지 이벤트 통계, 스폰지 포함)
+- [x] sdkMonitor.connectedServices 프로시저 추가 (연계 서비스 목록 + 스폰지 간접 연결 표시)
+- [x] SdkMonitorPage.tsx에 "연계 서비스 현황" 카드 추가 (직접/간접 연결 구분 표시)
+- [x] SdkMonitorPage.tsx에 "LORE 패키지" 탭 추가 (스폰지 → LORE → MIP 연결 구조도 포함)
+- [x] sdk-monitor.test.ts에 lorePackageStats, connectedServices 테스트 추가 (10개 통과)

@@ -1090,6 +1090,100 @@ export const mipRouter = router({
         if (!db) return [];
         return db.select().from(mipAuditChain).orderBy(desc(mipAuditChain.timestamp)).limit(input.limit);
       }),
+
+    // LORE 패키지 이벤트 통계 (스폰지 포함 LORE 채널 전체)
+    lorePackageStats: protectedProcedure
+      .input(z.object({ days: z.number().min(1).max(30).default(7) }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return null;
+        const since = Date.now() - input.days * 24 * 60 * 60 * 1000;
+        const [total, processed, failed, byType] = await Promise.all([
+          db.select({ count: sql<number>`count(*)` }).from(lorePackageEvents)
+            .where(sql`${lorePackageEvents.createdAt} >= ${since}`),
+          db.select({ count: sql<number>`count(*)` }).from(lorePackageEvents)
+            .where(and(sql`${lorePackageEvents.createdAt} >= ${since}`, eq(lorePackageEvents.status, "processed"))),
+          db.select({ count: sql<number>`count(*)` }).from(lorePackageEvents)
+            .where(and(sql`${lorePackageEvents.createdAt} >= ${since}`, eq(lorePackageEvents.status, "failed"))),
+          db.select({ eventType: lorePackageEvents.eventType, count: sql<number>`count(*)` })
+            .from(lorePackageEvents)
+            .where(sql`${lorePackageEvents.createdAt} >= ${since}`)
+            .groupBy(lorePackageEvents.eventType),
+        ]);
+        return {
+          total: Number(total[0]?.count || 0),
+          processed: Number(processed[0]?.count || 0),
+          failed: Number(failed[0]?.count || 0),
+          byType: byType.map(r => ({ eventType: r.eventType, count: Number(r.count) })),
+        };
+      }),
+
+    // 연계 서비스 현황 (연결 구조 + 상태)
+    connectedServices: protectedProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return [];
+      // 각 서비스의 최근 활동 확인
+      const [lastHangyeol, lastLore, lastSoma] = await Promise.all([
+        db.select({ timestamp: mipAuditChain.timestamp })
+          .from(mipAuditChain)
+          .where(sql`${mipAuditChain.actorId} LIKE '%hangyeol%'`)
+          .orderBy(desc(mipAuditChain.timestamp))
+          .limit(1),
+        db.select({ createdAt: lorePackageEvents.createdAt })
+          .from(lorePackageEvents)
+          .orderBy(desc(lorePackageEvents.createdAt))
+          .limit(1),
+        db.select({ timestamp: mipAuditChain.timestamp })
+          .from(mipAuditChain)
+          .where(sql`${mipAuditChain.actorId} LIKE '%soma%'`)
+          .orderBy(desc(mipAuditChain.timestamp))
+          .limit(1),
+      ]);
+      const now = Date.now();
+      const isActive = (ts: number | undefined) => ts ? (now - ts) < 24 * 60 * 60 * 1000 : false;
+      return [
+        {
+          id: "hangyeol",
+          name: "한결 (Hangyeol)",
+          role: "AI Runtime",
+          endpoint: "/api/hangyeol",
+          lastActivity: lastHangyeol[0]?.timestamp ?? null,
+          isActive: isActive(lastHangyeol[0]?.timestamp),
+          via: null,
+          color: "cyan",
+        },
+        {
+          id: "soma",
+          name: "SOMA",
+          role: "Device Manager",
+          endpoint: "/api/soma",
+          lastActivity: lastSoma[0]?.timestamp ?? null,
+          isActive: isActive(lastSoma[0]?.timestamp),
+          via: null,
+          color: "violet",
+        },
+        {
+          id: "lore",
+          name: "LORE",
+          role: "DNA Package Source",
+          endpoint: "/api/lore",
+          lastActivity: lastLore[0]?.createdAt ?? null,
+          isActive: isActive(lastLore[0]?.createdAt),
+          via: null,
+          color: "amber",
+        },
+        {
+          id: "sponge",
+          name: "스폰지 (Sponge)",
+          role: "Content Provider",
+          endpoint: null,
+          lastActivity: lastLore[0]?.createdAt ?? null,
+          isActive: isActive(lastLore[0]?.createdAt),
+          via: "lore",
+          color: "emerald",
+        },
+      ];
+    }),
   }),
 
   // ─── §14.6 Distributed Ledger Anchoring ────────────────────────────────────

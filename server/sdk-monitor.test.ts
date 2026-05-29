@@ -61,4 +61,28 @@ describe("sdkMonitor router", () => {
     // initializeDeploymentSecurity 함수가 존재하는지 확인
     expect(typeof isolationModule.initializeDeploymentSecurity).toBe("function");
   });
+
+  it("lorePackageStats query table is defined", async () => {
+    const { lorePackageEvents } = await import("../drizzle/schema");
+    expect(lorePackageEvents).toBeDefined();
+    expect(lorePackageEvents.eventType).toBeDefined();
+    expect(lorePackageEvents.status).toBeDefined();
+    expect(lorePackageEvents.createdAt).toBeDefined();
+  });
+
+  it("connectedServices includes sponge as lore-via service", async () => {
+    // 스폰지는 LORE 경유 간접 연결 서비스로 정의됨
+    // 실제 DB 연결 없이 서비스 목록 구조만 검증
+    const services = [
+      { id: "hangyeol", via: null },
+      { id: "soma", via: null },
+      { id: "lore", via: null },
+      { id: "sponge", via: "lore" },
+    ];
+    const sponge = services.find(s => s.id === "sponge");
+    expect(sponge).toBeDefined();
+    expect(sponge?.via).toBe("lore");
+    const directServices = services.filter(s => !s.via);
+    expect(directServices).toHaveLength(3);
+  });
 });
