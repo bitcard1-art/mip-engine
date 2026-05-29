@@ -75,17 +75,17 @@ export default function SdkMonitorPage() {
 
   return (
     <MIPLayout title="SDK 연계 현황">
-      <div className="p-6 space-y-6 max-w-7xl">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 max-w-7xl">
         {/* 헤더 */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">SDK 연계 현황</h1>
-            <p className="text-sm text-muted-foreground mt-1">
+            <h1 className="text-lg sm:text-2xl font-bold text-foreground">SDK 연계 현황</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1 hidden sm:block">
               Persona Runtime SDK와 MIP 엔진 간 실시간 연계 모니터링
             </p>
           </div>
           <Select value={String(days)} onValueChange={(v) => setDays(Number(v))}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="w-24 sm:w-32">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -98,7 +98,7 @@ export default function SdkMonitorPage() {
         </div>
 
         {/* 요약 카드 */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
           <StatCard
             icon={Activity}
             label={`API 호출 (${days}일)`}
@@ -130,13 +130,15 @@ export default function SdkMonitorPage() {
         </div>
 
         <Tabs defaultValue="api" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="api">API 호출 추이</TabsTrigger>
-            <TabsTrigger value="implant">이식 현황</TabsTrigger>
-            <TabsTrigger value="safety">안전 게이트</TabsTrigger>
-            <TabsTrigger value="sessions">활성 세션</TabsTrigger>
-            <TabsTrigger value="events">최근 이벤트</TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
+            <TabsList className="w-max min-w-full sm:w-full">
+              <TabsTrigger value="api" className="text-xs sm:text-sm px-2 sm:px-3">API 추이</TabsTrigger>
+              <TabsTrigger value="implant" className="text-xs sm:text-sm px-2 sm:px-3">이식 현황</TabsTrigger>
+              <TabsTrigger value="safety" className="text-xs sm:text-sm px-2 sm:px-3">안전 게이트</TabsTrigger>
+              <TabsTrigger value="sessions" className="text-xs sm:text-sm px-2 sm:px-3">활성 세션</TabsTrigger>
+              <TabsTrigger value="events" className="text-xs sm:text-sm px-2 sm:px-3">이벤트</TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* API 호출 추이 */}
           <TabsContent value="api">
@@ -338,15 +340,15 @@ export default function SdkMonitorPage() {
                 ) : (
                   <div className="space-y-2">
                     {activeSessions.map((s) => (
-                      <div key={s.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/40 border border-border">
+                      <div key={s.id} className="p-3 rounded-lg bg-muted/40 border border-border space-y-2">
                         <div className="flex items-center gap-3">
-                          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                          <div>
-                            <p className="text-sm font-medium">{s.deviceName}</p>
-                            <p className="text-xs text-muted-foreground font-mono">{s.deviceId.slice(0, 16)}...</p>
+                          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{s.deviceName}</p>
+                            <p className="text-xs text-muted-foreground font-mono truncate">{s.deviceId.slice(0, 16)}...</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <Badge variant="outline" className="text-xs">
                             {DEVICE_TYPE_LABELS[s.deviceType ?? ""] ?? s.deviceType}
                           </Badge>
