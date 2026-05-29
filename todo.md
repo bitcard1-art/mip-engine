@@ -344,3 +344,12 @@
 - [x] GET /api/hangyeol/mio/package?implantationId={id} 엔드포인트 추가 (Runtime Persona 조회)
 - [x] 이식 완료 시 한결에 mip_implant_completed 콜백 전송 (implantationId, deviceId, packageId 포함)
 - [x] 이식 카드 및 이식 상세에 MIO 패키지(런타임 페르소나) 이름 표시
+
+## AI Agent 타입 추가 + SDK 연계 현황 모니터링
+
+- [x] AI Agent 디바이스 타입 스키마 추가 (device_type enum에 ai_agent 추가)
+- [x] DB 마이그레이션 실행 (mip_devices device_type enum 변경)
+- [x] isolation-layer.ts에 ai_agent 보안 등급 enhanced 분기 추가
+- [x] SDK 연계 현황 집계 tRPC API 추가 (일별/서비스별 호출 수, 이식 현황, 차단 건수)
+- [x] SdkMonitorPage.tsx — SDK 연계 현황 모니터링 페이지 구현
+- [x] 사이드바 네비게이션에 SDK 연계 현황 메뉴 추가

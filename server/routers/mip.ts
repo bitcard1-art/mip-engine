@@ -52,6 +52,7 @@ import {
   mipEmotionalBridgeEvents,
   mipLedgerAnchors,
   mipLedgerAnchorDlq,
+  mipMessageChecks,
 } from "../../drizzle/schema";
 import {
   anchorToLedger,
@@ -66,7 +67,7 @@ import {
 
 const DeviceRegisterSchema = z.object({
   deviceName: z.string().min(1).max(100),
-  deviceType: z.enum(["humanoid", "iot", "software", "sms", "kakaotalk", "whatsapp", "line", "telegram", "instagram", "rcs", "youtube"]),
+  deviceType: z.enum(["humanoid", "iot", "ai_agent", "software", "sms", "kakaotalk", "whatsapp", "line", "telegram", "instagram", "rcs", "youtube"]),
   did: z.string().min(10),
   metadata: z.record(z.string(), z.unknown()).optional(),
 });
@@ -976,6 +977,118 @@ export const mipRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         return rollbackDna(input.packageId, input.targetVersionId, String(ctx.user.id));
+      }),
+  }),
+
+  // ─── SDK 연계 현황 모니터링 ─────────────────────────────────────────────────
+  sdkMonitor: router({
+    // 일별 서비스별 API 호출 집계
+    dailyStats: protectedProcedure
+      .input(z.object({ days: z.number().min(1).max(30).default(7) }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        const since = Date.now() - input.days * 24 * 60 * 60 * 1000;
+        const auditRows = await db
+          .select({ action: mipAuditChain.action, actorId: mipAuditChain.actorId, timestamp: mipAuditChain.timestamp })
+          .from(mipAuditChain)
+          .where(sql`${mipAuditChain.timestamp} >= ${since}`)
+          .orderBy(desc(mipAuditChain.timestamp));
+        const byDay: Record<string, { hangyeol: number; soma: number; lore: number; total: number }> = {};
+        for (const row of auditRows) {
+          const d = new Date(row.timestamp).toISOString().slice(0, 10);
+          if (!byDay[d]) byDay[d] = { hangyeol: 0, soma: 0, lore: 0, total: 0 };
+          const actor = row.actorId ?? "";
+          if (actor.includes("hangyeol") || actor.includes("system")) byDay[d].hangyeol++;
+          else if (actor.includes("soma")) byDay[d].soma++;
+          else if (actor.includes("lore")) byDay[d].lore++;
+          byDay[d].total++;
+        }
+        return Object.entries(byDay)
+          .map(([date, counts]) => ({ date, ...counts }))
+          .sort((a, b) => a.date.localeCompare(b.date));
+      }),
+    // 서비스별 이식 현황 집계
+    implantStats: protectedProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return null;
+      const [total, completed, failed, inProgress] = await Promise.all([
+        db.select({ count: sql<number>`count(*)` }).from(mipImplantations),
+        db.select({ count: sql<number>`count(*)` }).from(mipImplantations).where(eq(mipImplantations.status, "completed")),
+        db.select({ count: sql<number>`count(*)` }).from(mipImplantations).where(eq(mipImplantations.status, "failed")),
+        db.select({ count: sql<number>`count(*)` }).from(mipImplantations).where(eq(mipImplantations.status, "in_progress")),
+      ]);
+      const deviceRows = await db
+        .select({ deviceType: mipDevices.deviceType, count: sql<number>`count(*)` })
+        .from(mipImplantations)
+        .innerJoin(mipDevices, eq(mipImplantations.deviceId, mipDevices.id))
+        .groupBy(mipDevices.deviceType);
+      return {
+        total: Number(total[0]?.count || 0),
+        completed: Number(completed[0]?.count || 0),
+        failed: Number(failed[0]?.count || 0),
+        inProgress: Number(inProgress[0]?.count || 0),
+        byDeviceType: deviceRows.map(r => ({ deviceType: r.deviceType, count: Number(r.count) })),
+      };
+    }),
+    // 정책 차단 현황 (5개 게이트별)
+    blockStats: protectedProcedure
+      .input(z.object({ days: z.number().min(1).max(30).default(7) }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        const since = Date.now() - input.days * 24 * 60 * 60 * 1000;
+        const rows = await db
+          .select({ violationType: mipIsolationViolations.violationType, count: sql<number>`count(*)` })
+          .from(mipIsolationViolations)
+          .where(sql`${mipIsolationViolations.createdAt} >= ${since}`)
+          .groupBy(mipIsolationViolations.violationType);
+        return rows.map(r => ({ type: r.violationType, count: Number(r.count) }));
+      }),
+    // 메시지 검사 현황
+    messageStats: protectedProcedure
+      .input(z.object({ days: z.number().min(1).max(30).default(7) }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return null;
+        const since = Date.now() - input.days * 24 * 60 * 60 * 1000;
+        const [total, blocked, suspicious] = await Promise.all([
+          db.select({ count: sql<number>`count(*)` }).from(mipMessageChecks).where(sql`${mipMessageChecks.checkedAt} >= ${since}`),
+          db.select({ count: sql<number>`count(*)` }).from(mipMessageChecks).where(and(sql`${mipMessageChecks.checkedAt} >= ${since}`, eq(mipMessageChecks.verdict, "blocked"))),
+          db.select({ count: sql<number>`count(*)` }).from(mipMessageChecks).where(and(sql`${mipMessageChecks.checkedAt} >= ${since}`, eq(mipMessageChecks.verdict, "suspicious"))),
+        ]);
+        const t = Number(total[0]?.count || 0);
+        const b = Number(blocked[0]?.count || 0);
+        const s = Number(suspicious[0]?.count || 0);
+        return { total: t, blocked: b, suspicious: s, safe: t - b - s };
+      }),
+    // 활성 Runtime 세션 현황
+    activeSessions: protectedProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return [];
+      return db
+        .select({
+          id: mipRuntimeSessions.id,
+          deviceId: mipRuntimeSessions.deviceId,
+          protocol: mipRuntimeSessions.protocol,
+          status: mipRuntimeSessions.status,
+          startedAt: mipRuntimeSessions.startedAt,
+          deviceType: mipDevices.deviceType,
+          deviceName: mipDevices.deviceName,
+        })
+        .from(mipRuntimeSessions)
+        .innerJoin(mipDevices, eq(mipRuntimeSessions.deviceId, mipDevices.id))
+        .where(eq(mipRuntimeSessions.status, "active"))
+        .orderBy(desc(mipRuntimeSessions.startedAt))
+        .limit(50);
+    }),
+    // 최근 감사 이벤트 (실시간 연계 로그)
+    recentEvents: protectedProcedure
+      .input(z.object({ limit: z.number().min(1).max(100).default(20) }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        return db.select().from(mipAuditChain).orderBy(desc(mipAuditChain.timestamp)).limit(input.limit);
       }),
   }),
 

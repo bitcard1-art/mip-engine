@@ -30,7 +30,7 @@ export type InsertUser = typeof users.$inferInsert;
 export const mipDevices = mysqlTable("mip_devices", {
   id: varchar("id", { length: 36 }).primaryKey(),
   userId: varchar("user_id", { length: 36 }).notNull(),
-  deviceType: mysqlEnum("device_type", ["humanoid", "iot", "software", "sms", "kakaotalk", "whatsapp", "line", "telegram", "instagram", "rcs", "youtube"]).notNull(),
+  deviceType: mysqlEnum("device_type", ["humanoid", "iot", "ai_agent", "software", "sms", "kakaotalk", "whatsapp", "line", "telegram", "instagram", "rcs", "youtube"]).notNull(),
   deviceName: varchar("device_name", { length: 100 }).notNull(),
   did: text("did").notNull(),
   trustLevel: int("trust_level").default(0), // 0~3

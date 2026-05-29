@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { Activity, LayoutDashboard, LogOut, PanelLeft, Package, Shield, ShieldAlert, Cpu, FileSearch, Swords, ScrollText, BookOpen } from "lucide-react";
+import { Activity, LayoutDashboard, LogOut, PanelLeft, Package, Shield, ShieldAlert, Cpu, FileSearch, Swords, ScrollText, BookOpen, BarChart2 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -36,6 +36,7 @@ const menuItems = [
   { icon: Activity, label: "Safety Monitor", path: "/safety" },
   { icon: Swords, label: "Red-team", path: "/redteam" },
   { icon: ScrollText, label: "감사 로그", path: "/audit" },
+  { icon: BarChart2, label: "SDK 연계 현황", path: "/sdk-monitor" },
   { icon: BookOpen, label: "이용 가이드", path: "/guide" },
 ];
 

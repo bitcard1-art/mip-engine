@@ -21,6 +21,7 @@ import DnaRollbackPage from "./pages/DnaRollbackPage";
 import IsolationLayerPage from "./pages/IsolationLayerPage";
 import LedgerAnchoringPage from "./pages/LedgerAnchoringPage";
 import AccessGatePage from "./pages/AccessGatePage";
+import SdkMonitorPage from "./pages/SdkMonitorPage";
 
 function Router() {
   return (
@@ -42,6 +43,7 @@ function Router() {
       <Route path="/dna-rollback" component={DnaRollbackPage} />
       <Route path="/isolation-layer" component={IsolationLayerPage} />
       <Route path="/ledger-anchoring" component={LedgerAnchoringPage} />
+      <Route path="/sdk-monitor" component={SdkMonitorPage} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

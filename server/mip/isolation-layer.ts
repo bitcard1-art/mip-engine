@@ -386,7 +386,7 @@ export interface DeploymentSecurityInput {
   implantationId: string;
   sessionId?: string;
   userId: string;
-  deviceType?: "humanoid" | "iot" | "software" | "sms" | "kakaotalk" | "whatsapp" | "line" | "telegram" | "instagram" | "rcs" | "youtube";
+  deviceType?: "humanoid" | "iot" | "ai_agent" | "software" | "sms" | "kakaotalk" | "whatsapp" | "line" | "telegram" | "instagram" | "rcs" | "youtube";
   didWalletBinding?: string;
 }
 
@@ -408,11 +408,12 @@ export async function initializeDeploymentSecurity(
   // 디바이스 유형별 보안 등급 결정
   // humanoid: maximum (TEE + HRoT + Ledger 모두 필요)
   // iot: enhanced (Secure Enclave + DID Wallet)
+  // ai_agent: enhanced (Secure Enclave + DID Wallet — 자율 에이전트 격리 강화)
   // software: standard (DID Wallet만)
   const securityLevel =
     input.deviceType === "humanoid"
       ? "maximum"
-      : input.deviceType === "iot"
+      : input.deviceType === "iot" || input.deviceType === "ai_agent"
       ? "enhanced"
       : "standard";
 
