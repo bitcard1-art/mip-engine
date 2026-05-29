@@ -1,5 +1,5 @@
 import { useState } from "react";
-import DashboardLayout from "@/components/DashboardLayout";
+import MIPLayout from "@/components/MIPLayout";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -74,7 +74,7 @@ export default function SdkMonitorPage() {
   const totalBlocks = blockStats?.reduce((s, b) => s + b.count, 0) ?? 0;
 
   return (
-    <DashboardLayout>
+    <MIPLayout title="SDK 연계 현황">
       <div className="p-6 space-y-6 max-w-7xl">
         {/* 헤더 */}
         <div className="flex items-center justify-between">
@@ -400,6 +400,6 @@ export default function SdkMonitorPage() {
           </TabsContent>
         </Tabs>
       </div>
-    </DashboardLayout>
+    </MIPLayout>
   );
 }
