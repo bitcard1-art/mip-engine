@@ -377,3 +377,10 @@
 - [x] server/mip/decision-core/index.ts — runDecisionCore 오케스트레이션 함수
 - [x] 한결 API 연동: POST /api/hangyeol/decision/run — 판단 코어 실행 엔드포인트
 - [x] server/mip/decision-core/decision-core.test.ts — Vitest 테스트 (G1~G6 불변식 + 재현성 검증)
+
+## 작업 D: 디시즌 코어 프론트엔드 메뉴 추가
+
+- [x] tRPC 라우터에 decisionCore 프로시저 추가 (테스트 실행, 로그 조회)
+- [x] DecisionCorePage.tsx 페이지 구현 (8단계 흐름 시각화, 테스트 실행, 로그)
+- [x] DashboardLayout 사이드바 메뉴에 디시즌 코어 항목 추가
+- [x] App.tsx 라우팅 등록

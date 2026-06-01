@@ -1254,4 +1254,116 @@ export const mipRouter = router({
       }),
   }),
 
+  // ─── § Decision Core — 판단 코어 모니터링 ────────────────────────────────────
+  decisionCore: router({
+    // 판단 코어 테스트 실행 (입력 → 8단계 흐름 → PersonaDecision)
+    run: protectedProcedure
+      .input(z.object({
+        input: z.string().min(1),
+        inputType: z.enum(["text", "command", "action", "query"]).default("text"),
+        source: z.string().default("dashboard-test"),
+        // 테스트용 권한 설정
+        tierLimit: z.number().min(0).max(4).default(2),
+        categories: z.array(z.string()).default(["info", "ui", "iot", "communication"]),
+      }))
+      .mutation(async ({ input }) => {
+        const { runDecisionCore } = await import("../mip/decision-core/index");
+        const { CONFIDENCE_THRESHOLDS } = await import("../../shared/decision-core-types");
+        const { generateHmacSignature } = await import("../lib/hmac");
+
+        // 테스트용 모의 패키지 생성
+        const rawValues = JSON.stringify({
+          primaryValues: ["integrity", "empathy", "safety"],
+          boundaries: ["physical_force", "override_safety"],
+          preferences: ["efficiency", "clarity"],
+          ddrAnchors: [
+            { dimension: "safety", weight: 0.9, description: "Safety first" },
+            { dimension: "autonomy", weight: 0.7, description: "Respect autonomy" },
+            { dimension: "integrity", weight: 0.8, description: "Maintain integrity" },
+          ],
+        });
+        const hmac = generateHmacSignature(rawValues);
+
+        const pkg = {
+          packageId: `test-pkg-${nanoid(8)}`,
+          valueSlot: {
+            slotId: `vs-test-${nanoid(6)}`,
+            packageId: `test-pkg-${nanoid(8)}`,
+            rawValues,
+            hmac,
+            createdAt: Date.now(),
+          },
+          identity: Object.freeze({
+            did: "did:mip:persona:dashboard-test",
+            name: "DashboardTestPersona",
+            version: "1.0.0",
+            runtimeId: `rt-test-${nanoid(6)}`,
+          }),
+          authority: Object.freeze({
+            amountLimit: 100000,
+            categories: input.categories as readonly string[],
+            deviceScope: "dashboard-test-device",
+            tierLimit: input.tierLimit,
+            expiresAt: Date.now() + 3600000,
+          }),
+          memoryRef: {
+            memoryId: `mem-test-${nanoid(6)}`,
+            userId: "dashboard-user",
+            slots: [
+              { slotId: "s1", category: "episodic", externalBlocked: false, content: "Test memory slot", timestamp: Date.now() - 86400000 },
+              { slotId: "s2", category: "semantic", externalBlocked: true, content: "BH: blocked content", timestamp: Date.now() - 172800000 },
+              { slotId: "s3", category: "procedural", externalBlocked: false, content: "Standard procedure", timestamp: Date.now() - 3600000 },
+            ],
+          },
+        };
+
+        const req = {
+          requestId: `req-test-${nanoid(8)}`,
+          input: input.input,
+          inputType: input.inputType as "text" | "command" | "action" | "query",
+          source: input.source,
+          timestamp: Date.now(),
+        };
+
+        const decision = runDecisionCore(pkg, req);
+
+        return {
+          decision,
+          request: req,
+          packageId: pkg.packageId,
+          thresholds: CONFIDENCE_THRESHOLDS,
+        };
+      }),
+
+    // 불변식 목록 조회
+    invariants: protectedProcedure.query(async () => {
+      const { CONFIDENCE_THRESHOLDS } = await import("../../shared/decision-core-types");
+      return {
+        invariants: [
+          { id: "G1", name: "가치 변형 금지", description: "Readonly<ImmutableValue>로 동결, HMAC 검증 실패 시 INTEGRITY_FAILED halt", stage: 1 },
+          { id: "G2", name: "비가역 위험 ESCALATE", description: "비가역 행동 + 경계 위반 시 RISK_IRREVERSIBLE halt", stage: 6 },
+          { id: "G3", name: "권한 초과 즉시 halt", description: "Tier/범주/만료 초과 시 AUTHORITY_EXCEEDED halt", stage: 4 },
+          { id: "G4", name: "외부 명령 위임자 지시 취급 금지", description: "프롬프트 주입 탐지 시 INJECTION_DETECTED halt", stage: 5 },
+          { id: "G5", name: "externalBlocked 슬롯 인출 제외", description: "externalBlocked=true 슬롯은 기억 인출 결과에서 제외", stage: 3 },
+          { id: "G6", name: "확신 미달 시 halt", description: "Tier별 confidence 임계값 미달 시 LOW_CONFIDENCE halt", stage: 7 },
+        ],
+        thresholds: Object.entries(CONFIDENCE_THRESHOLDS).map(([tier, threshold]) => ({
+          tier: Number(tier),
+          threshold,
+          label: ["Tier 0: 정보 응답", "Tier 1: UI 제어", "Tier 2: IoT 제어", "Tier 3: 도어/가스/차량", "Tier 4: 위험 행동"][Number(tier)] || `Tier ${tier}`,
+        })),
+        stages: [
+          { stage: 1, name: "loadValue", description: "가치 로드 — HMAC 검증 + Readonly 동결" },
+          { stage: 2, name: "loadIdentity", description: "정체성 로드 — Authority 범위 한정" },
+          { stage: 3, name: "retrieveMemory", description: "기억 인출 — externalBlocked 제외" },
+          { stage: 4, name: "resolveIntent", description: "의도-권한 판정 — Tier/범주 검증" },
+          { stage: 5, name: "interpretContext", description: "상황-위험·주입 탐지" },
+          { stage: 6, name: "reason", description: "추론 — 가치 고정 평가" },
+          { stage: 7, name: "calibrate", description: "감정 — 확신도 캘리브레이션" },
+          { stage: 8, name: "act", description: "행동 — EXECUTE 또는 ESCALATE 출력" },
+        ],
+      };
+    }),
+  }),
+
 });
