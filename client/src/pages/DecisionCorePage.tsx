@@ -197,10 +197,14 @@ export default function DecisionCorePage() {
   const [categories, setCategories] = useState(["info", "ui", "iot", "communication"]);
   const [results, setResults] = useState<RunResult[]>([]);
 
+  const utils = trpc.useUtils();
+  const logsQuery = trpc.mip.decisionCore.logs.useQuery(undefined, { refetchOnWindowFocus: false });
   const invariantsQuery = trpc.mip.decisionCore.invariants.useQuery();
   const runMutation = trpc.mip.decisionCore.run.useMutation({
     onSuccess: (data) => {
       setResults((prev) => [data, ...prev].slice(0, 20));
+      // DB 이력 갱신
+      utils.mip.decisionCore.logs.invalidate();
       // queueMicrotask: React 19 + Sonner flushSync 충돌 방지
       queueMicrotask(() => {
         if (data.decision.action === "EXECUTE") {
@@ -522,20 +526,17 @@ export default function DecisionCorePage() {
 
           {/* ─── 실행 이력 탭 ──────────────────────────────────────────────── */}
           <TabsContent value="history" className="space-y-4">
-            <Card className="border-border/50">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-primary" /> 실행 이력 (세션 내)
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {results.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground text-sm">
-                    아직 실행 이력이 없습니다.
-                  </div>
-                ) : (
+            {/* 세션 내 실행 */}
+            {results.length > 0 && (
+              <Card className="border-border/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-primary" /> 세션 내 실행 ({results.length}건)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
                   <div className="space-y-2">
-                    {results.map((r, i) => (
+                    {results.map((r) => (
                       <div
                         key={r.decision.auditLog.decisionId}
                         className="flex items-center gap-3 p-3 rounded-lg border border-border/50 hover:bg-accent/30 transition-colors"
@@ -559,6 +560,54 @@ export default function DecisionCorePage() {
                           </div>
                         </div>
                         <ActionBadge action={r.decision.action} />
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* DB 저장된 이력 */}
+            <Card className="border-border/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-cyan-400" /> 저장된 실행 이력
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {logsQuery.isLoading ? (
+                  <div className="text-center py-8 text-muted-foreground text-sm">로딩 중...</div>
+                ) : !logsQuery.data || logsQuery.data.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground text-sm">
+                    저장된 실행 이력이 없습니다.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {logsQuery.data.map((log: any) => (
+                      <div
+                        key={log.id}
+                        className="flex items-center gap-3 p-3 rounded-lg border border-border/50 hover:bg-accent/30 transition-colors"
+                      >
+                        <div className="shrink-0">
+                          {log.action === "EXECUTE" ? (
+                            <CheckCircle2 className="h-5 w-5 text-green-400" />
+                          ) : (
+                            <XCircle className="h-5 w-5 text-red-400" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium truncate">{log.input}</span>
+                            <HaltReasonBadge reason={log.haltReason} />
+                          </div>
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+                            <span>Confidence: {(log.confidence * 100).toFixed(1)}%</span>
+                            <span>Tier: {log.tierLimit}</span>
+                            {log.durationMs != null && <span>{log.durationMs}ms</span>}
+                            <span>{new Date(log.createdAt).toLocaleString()}</span>
+                          </div>
+                        </div>
+                        <ActionBadge action={log.action} />
                       </div>
                     ))}
                   </div>

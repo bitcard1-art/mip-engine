@@ -668,3 +668,29 @@ export const mipBlockActions = mysqlTable("mip_block_actions", {
 });
 export type MipBlockAction = typeof mipBlockActions.$inferSelect;
 export type InsertMipBlockAction = typeof mipBlockActions.$inferInsert;
+
+// ─── MIP Decision Core Logs: 판단 코어 실행 이력 ─────────────────────────────
+export const mipDecisionLogs = mysqlTable("mip_decision_logs", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  userId: varchar("user_id", { length: 36 }).notNull(),
+  // 요청 정보
+  requestId: varchar("request_id", { length: 64 }).notNull(),
+  input: text("input").notNull(),
+  inputType: varchar("input_type", { length: 20 }).notNull(),
+  source: varchar("source", { length: 32 }).notNull(),
+  // 설정
+  tierLimit: int("tier_limit").notNull(),
+  categories: text("categories").notNull(), // JSON array
+  // 결과
+  action: varchar("action", { length: 16 }).notNull(), // EXECUTE or ESCALATE
+  haltReason: varchar("halt_reason", { length: 32 }),
+  confidence: int("confidence").notNull(), // 0-100 (percentage * 100)
+  // 8단계 감사 로그
+  auditLog: text("audit_log").notNull(), // JSON array of stage results
+  // 메타
+  packageId: varchar("package_id", { length: 64 }),
+  durationMs: int("duration_ms"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+});
+export type MipDecisionLog = typeof mipDecisionLogs.$inferSelect;
+export type InsertMipDecisionLog = typeof mipDecisionLogs.$inferInsert;

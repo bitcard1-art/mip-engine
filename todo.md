@@ -394,3 +394,10 @@
 
 - [x] 한국어 프롬프트 주입 패턴 추가 (interpretContext) - "무시하고 시키는대로 해" 등 미탐지 문제
 - [x] 금융/송금 관련 키워드를 위험 행동(RISK_IRREVERSIBLE)으로 분류 (resolveIntent 단계에서 우선 처리)
+
+## 작업 E: Decision Core 테스트 이력 DB 영구 저장
+
+- [x] DB 스키마: mip_decision_logs 테이블 추가 (입력, 결과, 8단계 로그, 타임스탬프)
+- [x] tRPC 프로시저: decisionCore.run에서 결과를 DB에 저장
+- [x] tRPC 프로시저: decisionCore.logs 추가 (이력 조회)
+- [x] DecisionCorePage.tsx: 페이지 로드 시 DB에서 이력 조회 + 실행 이력 탭 연동

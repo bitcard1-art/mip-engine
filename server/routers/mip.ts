@@ -1266,10 +1266,12 @@ export const mipRouter = router({
         tierLimit: z.number().min(0).max(4).default(2),
         categories: z.array(z.string()).default(["info", "ui", "iot", "communication"]),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         const { runDecisionCore } = await import("../mip/decision-core/index");
         const { CONFIDENCE_THRESHOLDS } = await import("../../shared/decision-core-types");
         const { generateHmacSignature } = await import("../lib/hmac");
+        const { mipDecisionLogs } = await import("../../drizzle/schema");
+        const startTime = Date.now();
 
         // 테스트용 모의 패키지 생성
         const rawValues = JSON.stringify({
@@ -1326,6 +1328,32 @@ export const mipRouter = router({
         };
 
         const decision = runDecisionCore(pkg, req);
+        const durationMs = Date.now() - startTime;
+
+        // DB에 이력 저장
+        try {
+          const db = await getDb();
+          if (!db) throw new Error("DB not available");
+          await db.insert(mipDecisionLogs).values({
+            id: nanoid(36),
+            userId: String(ctx.user!.id),
+            requestId: req.requestId,
+            input: input.input,
+            inputType: input.inputType,
+            source: input.source,
+            tierLimit: input.tierLimit,
+            categories: JSON.stringify(input.categories),
+            action: decision.action,
+            haltReason: decision.haltReason ?? null,
+            confidence: Math.round(decision.confidence * 100),
+            auditLog: JSON.stringify(decision.auditLog),
+            packageId: pkg.packageId,
+            durationMs,
+            createdAt: Date.now(),
+          });
+        } catch (e) {
+          console.error("[DecisionCore] Failed to save log:", e);
+        }
 
         return {
           decision,
@@ -1333,6 +1361,31 @@ export const mipRouter = router({
           packageId: pkg.packageId,
           thresholds: CONFIDENCE_THRESHOLDS,
         };
+      }),
+
+    // 이력 조회
+    logs: protectedProcedure
+      .input(z.object({
+        limit: z.number().min(1).max(100).default(30),
+      }).optional())
+      .query(async ({ ctx, input }) => {
+        const { mipDecisionLogs } = await import("../../drizzle/schema");
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB not available" });
+        const limit = input?.limit ?? 30;
+        const userId = String(ctx.user!.id);
+        const logs = await db
+          .select()
+          .from(mipDecisionLogs)
+          .where(eq(mipDecisionLogs.userId, userId))
+          .orderBy(desc(mipDecisionLogs.createdAt))
+          .limit(limit);
+        return logs.map((log: any) => ({
+          ...log,
+          confidence: log.confidence / 100,
+          categories: JSON.parse(log.categories),
+          auditLog: JSON.parse(log.auditLog),
+        }));
       }),
 
     // 불변식 목록 조회
