@@ -53,6 +53,7 @@ const NAV_GROUPS: NavGroup[] = [
       { path: "/audit", label: "감사 체인", icon: ScrollText },
       { path: "/isolation-layer", label: "§14 Isolation Layer", icon: ShieldCheck },
       { path: "/ledger-anchoring", label: "§14.6 Ledger Anchoring", icon: Anchor },
+      { path: "/decision-core", label: "Decision Core", icon: FileText },
     ],
   },
 

@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import DashboardLayout from "@/components/DashboardLayout";
+import MIPLayout from "@/components/MIPLayout";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -243,7 +243,7 @@ export default function DecisionCorePage() {
   }, [results]);
 
   return (
-    <DashboardLayout>
+    <MIPLayout title="Decision Core">
       <div className="space-y-6">
         {/* 헤더 */}
         <div className="flex items-center justify-between">
@@ -563,6 +563,6 @@ export default function DecisionCorePage() {
           </TabsContent>
         </Tabs>
       </div>
-    </DashboardLayout>
+    </MIPLayout>
   );
 }
