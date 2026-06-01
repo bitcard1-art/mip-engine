@@ -130,10 +130,10 @@
 - [x] server/hangyeol/test-samsung-devices.ts — 삼성 에어콘(AF17B6474WZN) + TV(KQ65QC88AF) 7단계 테스트 스크립트
 - [x] server/hangyeol/HANGYEOL_MIP_INTEGRATION_GUIDE.md — 한결 팀 연동 가이드 문서
 - [x] test-samsung-devices.ts 하드 실패형 보강 (각 단계 status 검증, 예상 허용/차단 결과 assert, 실패 시 process.exit(1))
-- [ ] 실제 mip.mysoma.space 서버에 삼성 에어콘(AF17B6474WZN) 등록 + 이식 시작
-- [ ] 실제 mip.mysoma.space 서버에 삼성 TV(KQ65QC88AF) 등록 + 이식 시작
-- [ ] checkCommand 허용/차단 시나리오 4개 실제 검증
-- [ ] 감사 이력 조회 및 결과 확인
+- [x] 실제 mip.mysoma.space 서버에 삼성 에어콘(AF17B6474WZN) 등록 + 이식 시작
+- [x] 실제 mip.mysoma.space 서버에 삼성 TV(KQ65QC88AF) 등록 + 이식 시작
+- [x] checkCommand 허용/차단 시나리오 4개 실제 검증
+- [x] 감사 이력 조회 및 결과 확인
 
 ## Phase 14: 이식 모달 MIO 패키지 드롭다운 개선
 
