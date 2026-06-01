@@ -1027,4 +1027,56 @@ hangyeolRouter.get(
   }
 );
 
+// ─── 18. Decision Core 실행 ─────────────────────────────────────────────────
+// POST /api/hangyeol/decision/run
+// 판단 코어 8단계 추론 실행 — PersonaDecision 반환
+hangyeolRouter.post(
+  "/decision/run",
+  hangyeolHmacMiddleware,
+  async (req, res) => {
+    try {
+      const { packageId, valueSlot, identity, authority, memoryRef, request } = req.body as {
+        packageId?: string;
+        valueSlot?: unknown;
+        identity?: unknown;
+        authority?: unknown;
+        memoryRef?: unknown;
+        request?: unknown;
+      };
+
+      // 필수 필드 검증
+      if (!packageId || !valueSlot || !identity || !authority || !memoryRef || !request) {
+        res.status(400).json({
+          error: "MISSING_FIELDS",
+          message: "packageId, valueSlot, identity, authority, memoryRef, request 필드가 모두 필요합니다.",
+        });
+        return;
+      }
+
+      const { runDecisionCore } = await import("../mip/decision-core/index");
+      const { PersonaPackage, DecisionRequest } = await import("../../shared/decision-core-types") as any;
+
+      const pkg = {
+        packageId,
+        valueSlot: valueSlot as any,
+        identity: identity as any,
+        authority: authority as any,
+        memoryRef: memoryRef as any,
+      };
+
+      const decisionReq = request as any;
+
+      const decision = runDecisionCore(pkg, decisionReq);
+
+      res.json({
+        success: true,
+        decision,
+      });
+    } catch (err) {
+      console.error("[Decision/Run] 판단 코어 실행 오류:", err);
+      res.status(500).json({ error: "INTERNAL_ERROR", message: "판단 코어 실행 중 오류 발생" });
+    }
+  }
+);
+
 export default hangyeolRouter;

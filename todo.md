@@ -362,3 +362,18 @@
 - [x] SdkMonitorPage.tsx에 "연계 서비스 현황" 카드 추가 (직접/간접 연결 구분 표시)
 - [x] SdkMonitorPage.tsx에 "LORE 패키지" 탭 추가 (스폰지 → LORE → MIP 연결 구조도 포함)
 - [x] sdk-monitor.test.ts에 lorePackageStats, connectedServices 테스트 추가 (10개 통과)
+
+## 작업 C: 판단 코어(Decision Core) 표준 라이브러리 구현
+
+- [x] shared/decision-core-types.ts — 핵심 타입 정의 (ImmutableValue, Authority, StageResult<T>, HaltReason, PersonaDecision, ValueSlot, Identity, MemoryRef 등)
+- [x] server/mip/decision-core/load-value.ts — 1단계: 가치 로드 (HMAC 검증 + Readonly 동결, G1)
+- [x] server/mip/decision-core/load-identity.ts — 2단계: 정체성 로드 (Authority 범위 한정)
+- [x] server/mip/decision-core/retrieve-memory.ts — 3단계: 기억 인출 (externalBlocked 슬롯 제외, G5)
+- [x] server/mip/decision-core/resolve-intent.ts — 4단계: 의도-권한 판정 (AUTHORITY_EXCEEDED halt, G3)
+- [x] server/mip/decision-core/interpret-context.ts — 5단계: 상황-위험·주입 탐지 (INJECTION_DETECTED halt, G4)
+- [x] server/mip/decision-core/reason.ts — 6단계: 추론-가치 고정 평가 (RISK_IRREVERSIBLE halt, G1/G2)
+- [x] server/mip/decision-core/calibrate.ts — 7단계: 감정-확신도 캘리브레이션 (LOW_CONFIDENCE halt, G6)
+- [x] server/mip/decision-core/act.ts — 8단계: 행동-실행 또는 정지 출력
+- [x] server/mip/decision-core/index.ts — runDecisionCore 오케스트레이션 함수
+- [x] 한결 API 연동: POST /api/hangyeol/decision/run — 판단 코어 실행 엔드포인트
+- [x] server/mip/decision-core/decision-core.test.ts — Vitest 테스트 (G1~G6 불변식 + 재현성 검증)
