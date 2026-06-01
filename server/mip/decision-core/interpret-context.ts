@@ -36,6 +36,15 @@ const INJECTION_PATTERNS: Array<{ pattern: RegExp; type: RiskFlag["type"]; sever
   { pattern: /(urgent|emergency|immediately|right\s+now|지금\s*당장|긴급|즉시)/i, type: "pressure", severity: "medium", detail: "Urgency pressure detected" },
   { pattern: /(if\s+you\s+don'?t|안\s*하면|하지\s*않으면).*(die|죽|위험|harm|damage)/i, type: "pressure", severity: "high", detail: "Threat-based pressure" },
 
+  // 한국어 주입 패턴
+  { pattern: /(이전|기존|위)\s*(지시|명령|규칙|제한|지침).*(무시|잊어|버려|취소)/i, type: "injection", severity: "critical", detail: "Korean instruction override attempt" },
+  { pattern: /(무시하고|무시해|잊고|잊어버리고).*(시키는|하라는|말하는|지시하는)/i, type: "injection", severity: "critical", detail: "Korean disregard-and-obey pattern" },
+  { pattern: /(시키는\s*대로|말하는\s*대로|하라는\s*대로)\s*(해|하세요|합니다)/i, type: "injection", severity: "critical", detail: "Korean blind obedience command" },
+  { pattern: /(지금부터|이제부터).*(새로운|다른)\s*(지시|명령|규칙|역할)/i, type: "injection", severity: "critical", detail: "Korean new instruction injection" },
+  { pattern: /(너|당신|넌)\s*(이제|지금).*(다른|새로운)\s*(사람|AI|역할|캐릭터)/i, type: "injection", severity: "critical", detail: "Korean identity reassignment" },
+  { pattern: /(제한|규칙|안전|윤리).*(없어|풀어|해제|무시|끄)/i, type: "injection", severity: "critical", detail: "Korean safety bypass attempt" },
+  { pattern: /(다\s*무시|전부\s*무시|모두\s*무시|다\s*잊어|전부\s*잊어)/i, type: "injection", severity: "critical", detail: "Korean blanket override" },
+
   // 조작
   { pattern: /inject\s*(context|memory|value)/i, type: "manipulation", severity: "critical", detail: "Direct injection keyword" },
   { pattern: /modify\s*(your\s+)?(core|value|identity|memory)/i, type: "manipulation", severity: "high", detail: "Core modification attempt" },

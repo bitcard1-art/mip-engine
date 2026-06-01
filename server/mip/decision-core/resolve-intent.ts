@@ -49,12 +49,25 @@ function classifyIntent(input: string): { category: string; actionType: string; 
   return { category: "info", actionType: "query_status", tier: 0, impact: "reversible" };
 }
 
+// 비가역 고위험 카테고리 — tier/category 검사보다 RISK_IRREVERSIBLE이 우선
+const IRREVERSIBLE_CATEGORIES = new Set(["finance", "danger"]);
+
 /**
  * 의도 — 권한 판정
  * G3: 위임 범위 초과 시 즉시 halt
+ * 예외: 비가역 고위험 행동(finance, danger)은 RISK_IRREVERSIBLE로 처리
  */
 export function resolveIntent(req: DecisionRequest, authority: Authority): StageResult<Intent> {
   const classified = classifyIntent(req.input);
+
+  // 비가역 고위험 카테고리는 RISK_IRREVERSIBLE로 우선 처리
+  if (IRREVERSIBLE_CATEGORIES.has(classified.category) && classified.impact === "irreversible") {
+    return {
+      halt: true,
+      reason: "RISK_IRREVERSIBLE",
+      detail: `Irreversible high-risk action "${classified.actionType}" (category: ${classified.category}) — requires human escalation`,
+    };
+  }
 
   // G3 검증 1: Tier 한도 초과
   if (classified.tier > authority.tierLimit) {

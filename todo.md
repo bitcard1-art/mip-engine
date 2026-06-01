@@ -389,3 +389,8 @@
 
 - [x] NotFoundError: insertBefore 에러 해결 (Decision Core 페이지 렌더링 오류) - React 19 + Sonner flushSync 충돌, queueMicrotask로 해결
 - [x] "의사결정 핵심" 메뉴를 "SDK 연계 현황" 앞으로 이동 (이식 관리 그룹)
+
+## 버그 수정: 판단 코어 탐지 로직 강화
+
+- [x] 한국어 프롬프트 주입 패턴 추가 (interpretContext) - "무시하고 시키는대로 해" 등 미탐지 문제
+- [x] 금융/송금 관련 키워드를 위험 행동(RISK_IRREVERSIBLE)으로 분류 (resolveIntent 단계에서 우선 처리)
