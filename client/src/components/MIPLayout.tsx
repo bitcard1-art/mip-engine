@@ -5,7 +5,7 @@ import {
   Shield, Cpu, Package, Activity, Terminal, BookOpen,
   Link2, ChevronRight, LogOut, User, Menu, X, AlertTriangle,
   Zap, Brain, RotateCcw, ShieldCheck, Anchor, ScrollText,
-  FlaskConical, FileText, BarChart2
+  FlaskConical, BarChart2
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,7 @@ const NAV_GROUPS: NavGroup[] = [
       { path: "/packages", label: "MIO Package", icon: Package },
       { path: "/implantations", label: "이식 프로세스", icon: Link2 },
       { path: "/sandbox", label: "Sandbox 검증", icon: FlaskConical },
+      { path: "/decision-core", label: "의사결정 핵심", icon: Brain },
       { path: "/sdk-monitor", label: "SDK 연계 현황", icon: BarChart2 },
     ],
   },
@@ -53,7 +54,6 @@ const NAV_GROUPS: NavGroup[] = [
       { path: "/audit", label: "감사 체인", icon: ScrollText },
       { path: "/isolation-layer", label: "§14 Isolation Layer", icon: ShieldCheck },
       { path: "/ledger-anchoring", label: "§14.6 Ledger Anchoring", icon: Anchor },
-      { path: "/decision-core", label: "Decision Core", icon: FileText },
     ],
   },
 

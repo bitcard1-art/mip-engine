@@ -201,20 +201,25 @@ export default function DecisionCorePage() {
   const runMutation = trpc.mip.decisionCore.run.useMutation({
     onSuccess: (data) => {
       setResults((prev) => [data, ...prev].slice(0, 20));
-      if (data.decision.action === "EXECUTE") {
-        toast.success("EXECUTE — 행동 허용", { description: `Confidence: ${(data.decision.confidence * 100).toFixed(1)}%` });
-      } else {
-        toast.error(`ESCALATE — ${data.decision.haltReason}`, { description: data.decision.haltDetail || "판단 코어가 행동을 정지시켰습니다." });
-      }
+      // queueMicrotask: React 19 + Sonner flushSync 충돌 방지
+      queueMicrotask(() => {
+        if (data.decision.action === "EXECUTE") {
+          toast.success("EXECUTE — 행동 허용", { description: `Confidence: ${(data.decision.confidence * 100).toFixed(1)}%` });
+        } else {
+          toast.error(`ESCALATE — ${data.decision.haltReason}`, { description: data.decision.haltDetail || "판단 코어가 행동을 정지시켰습니다." });
+        }
+      });
     },
     onError: (err) => {
-      toast.error("판단 코어 실행 오류", { description: err.message });
+      queueMicrotask(() => {
+        toast.error("판단 코어 실행 오류", { description: err.message });
+      });
     },
   });
 
   const handleRun = () => {
     if (!inputText.trim()) {
-      toast.warning("입력을 입력해주세요.");
+      queueMicrotask(() => toast.warning("입력을 입력해주세요."));
       return;
     }
     runMutation.mutate({ input: inputText, tierLimit, categories });

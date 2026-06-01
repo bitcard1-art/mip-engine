@@ -384,3 +384,8 @@
 - [x] DecisionCorePage.tsx 페이지 구현 (8단계 흐름 시각화, 테스트 실행, 로그)
 - [x] DashboardLayout 사이드바 메뉴에 디시즌 코어 항목 추가
 - [x] App.tsx 라우팅 등록
+
+## 버그 수정: Decision Core 페이지
+
+- [x] NotFoundError: insertBefore 에러 해결 (Decision Core 페이지 렌더링 오류) - React 19 + Sonner flushSync 충돌, queueMicrotask로 해결
+- [x] "의사결정 핵심" 메뉴를 "SDK 연계 현황" 앞으로 이동 (이식 관리 그룹)
