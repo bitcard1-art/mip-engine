@@ -362,20 +362,29 @@ function CardIssuanceContent() {
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <label className="text-sm font-medium">Subject DID *</label>
-              <Input
-                placeholder="did:persona:0OC8fQ2nuF"
-                value={directForm.subjectDid}
-                onChange={e => setDirectForm(f => ({ ...f, subjectDid: e.target.value }))}
-              />
-            </div>
-            <div>
               <label className="text-sm font-medium">이름 *</label>
               <Input
                 placeholder="이은실"
                 value={directForm.displayName}
-                onChange={e => setDirectForm(f => ({ ...f, displayName: e.target.value }))}
+                onChange={e => {
+                  const name = e.target.value;
+                  setDirectForm(f => ({
+                    ...f,
+                    displayName: name,
+                    subjectDid: name ? `did:persona:${btoa(unescape(encodeURIComponent(name))).replace(/[+/=]/g, '').slice(0, 10)}` : "",
+                  }));
+                }}
               />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Subject DID</label>
+              <Input
+                placeholder="자동 생성됨"
+                value={directForm.subjectDid}
+                onChange={e => setDirectForm(f => ({ ...f, subjectDid: e.target.value }))}
+                className="font-mono text-xs"
+              />
+              <p className="text-[11px] text-muted-foreground mt-1">이름 입력 시 자동 생성됩니다. 직접 수정도 가능합니다.</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
