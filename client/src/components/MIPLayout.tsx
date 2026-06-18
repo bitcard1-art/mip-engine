@@ -5,7 +5,7 @@ import {
   Shield, Cpu, Package, Activity, Terminal, BookOpen,
   Link2, ChevronRight, LogOut, User, Menu, X, AlertTriangle,
   Zap, Brain, RotateCcw, ShieldCheck, Anchor, ScrollText,
-  FlaskConical, BarChart2
+  FlaskConical, BarChart2, CreditCard
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ interface NavItem {
   path: string;
   label: string;
   icon: React.ElementType;
+  adminOnly?: boolean;
 }
 
 interface NavGroup {
@@ -57,6 +58,12 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
 
+  {
+    label: "관리자",
+    items: [
+      { path: "/card-issuance", label: "카드 발급", icon: CreditCard, adminOnly: true },
+    ],
+  },
   {
     label: "설정 · 가이드",
     items: [
@@ -145,7 +152,10 @@ export default function MIPLayout({ children, title }: MIPLayoutProps) {
         {/* Navigation */}
         <nav className="flex-1 py-3 overflow-y-auto">
           <div className="px-3 space-y-4">
-            {NAV_GROUPS.map((group) => (
+            {NAV_GROUPS.map((group) => {
+              const visibleItems = group.items.filter(item => !item.adminOnly || user?.role === 'admin');
+              if (visibleItems.length === 0) return null;
+              return (
               <div key={group.label}>
                 {/* 그룹 헤더 */}
                 <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/35 select-none">
@@ -153,7 +163,7 @@ export default function MIPLayout({ children, title }: MIPLayoutProps) {
                 </p>
                 {/* 그룹 아이템 */}
                 <div className="space-y-0.5">
-                  {group.items.map((item) => {
+                  {visibleItems.map((item) => {
                     const Icon = item.icon;
                     const isActive = location === item.path;
                     return (
@@ -176,7 +186,8 @@ export default function MIPLayout({ children, title }: MIPLayoutProps) {
                   })}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </nav>
 

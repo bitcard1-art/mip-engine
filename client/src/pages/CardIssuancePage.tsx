@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
-import DashboardLayout from "@/components/DashboardLayout";
+import MIPLayout from "@/components/MIPLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,9 +24,9 @@ import {
 
 export default function CardIssuancePage() {
   return (
-    <DashboardLayout>
+    <MIPLayout title="페르소나 카드 발급">
       <CardIssuanceContent />
-    </DashboardLayout>
+    </MIPLayout>
   );
 }
 
