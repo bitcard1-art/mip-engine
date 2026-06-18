@@ -1079,4 +1079,41 @@ hangyeolRouter.post(
   }
 );
 
+// ─── POST /api/hangyeol/card/request — 외부 서비스 카드 발급 요청 ───────────────
+hangyeolRouter.post("/card/request",
+  hangyeolHmacMiddleware,
+  async (req, res) => {
+    try {
+      const { subjectDid, displayName, title, organization, bio, capabilities, expiresInDays, requesterRef } = req.body;
+      if (!subjectDid || !displayName || !capabilities || !Array.isArray(capabilities)) {
+        res.status(400).json({ error: "INVALID_PARAMS", message: "subjectDid, displayName, capabilities(배열) 필수" });
+        return;
+      }
+      const { personaCardRequests } = await import("../../drizzle/schema");
+      const db = (await getDb())!;
+      const id = nanoid();
+      const now = Date.now();
+      await db.insert(personaCardRequests).values({
+        id,
+        requesterService: "hangyeol",
+        requesterRef: requesterRef ?? null,
+        subjectDid,
+        displayName,
+        title: title ?? null,
+        organization: organization ?? null,
+        bio: bio ?? null,
+        capabilities: JSON.stringify(capabilities),
+        status: "pending",
+        expiresInDays: expiresInDays ?? 365,
+        createdAt: now,
+        updatedAt: now,
+      });
+      res.status(201).json({ success: true, requestId: id, status: "pending", message: "카드 발급 요청 등록 완료. 관리자 승인 대기 중." });
+    } catch (err) {
+      console.error("[Card/Request] 카드 발급 요청 오류:", err);
+      res.status(500).json({ error: "INTERNAL_ERROR", message: "카드 발급 요청 처리 중 오류" });
+    }
+  }
+);
+
 export default hangyeolRouter;

@@ -24,4 +24,6 @@ export const ENV = {
   hangyeolMipSharedSecret: process.env.HANGYEOL_MIP_SHARED_SECRET ?? "",
   mipHangyeolSharedSecret: process.env.MIP_HANGYEOL_SHARED_SECRET ?? "",
   hangyeolServiceUrl: process.env.HANGYEOL_SERVICE_URL ?? "https://hangyeol.mysoma.space",
+  // MIP 발급자 Ed25519 개인키 (페르소나 카드 서명용)
+  mipIssuerPrivateKey: (process.env.MIP_ISSUER_PRIVATE_KEY ?? "").replace(/\\n/g, "\n"),
 };

@@ -23,6 +23,7 @@ import LedgerAnchoringPage from "./pages/LedgerAnchoringPage";
 import AccessGatePage from "./pages/AccessGatePage";
 import SdkMonitorPage from "./pages/SdkMonitorPage";
 import DecisionCorePage from "./pages/DecisionCorePage";
+import CardIssuancePage from "./pages/CardIssuancePage";
 
 function Router() {
   return (
@@ -46,6 +47,7 @@ function Router() {
       <Route path="/ledger-anchoring" component={LedgerAnchoringPage} />
       <Route path="/decision-core" component={DecisionCorePage} />
       <Route path="/sdk-monitor" component={SdkMonitorPage} />
+      <Route path="/card-issuance" component={CardIssuancePage} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

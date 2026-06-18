@@ -694,3 +694,54 @@ export const mipDecisionLogs = mysqlTable("mip_decision_logs", {
 });
 export type MipDecisionLog = typeof mipDecisionLogs.$inferSelect;
 export type InsertMipDecisionLog = typeof mipDecisionLogs.$inferInsert;
+
+// ─── Persona Card Requests: 페르소나 카드 발급 요청 ──────────────────────────
+export const personaCardRequests = mysqlTable("persona_card_requests", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  // 요청자 정보
+  requesterService: varchar("requester_service", { length: 50 }).notNull(), // hangyeol, panc, soma 등
+  requesterRef: varchar("requester_ref", { length: 100 }), // 요청 측 참조 ID
+  // 대상 페르소나
+  subjectDid: varchar("subject_did", { length: 128 }).notNull(),
+  displayName: varchar("display_name", { length: 100 }).notNull(),
+  title: varchar("title", { length: 200 }),
+  organization: varchar("organization", { length: 100 }),
+  bio: text("bio"),
+  // 요청 capabilities
+  capabilities: text("capabilities").notNull(), // JSON array
+  // 상태
+  status: mysqlEnum("status", ["pending", "approved", "rejected"]).default("pending").notNull(),
+  // 승인/거부 정보
+  reviewedBy: varchar("reviewed_by", { length: 64 }), // admin openId
+  reviewedAt: bigint("reviewed_at", { mode: "number" }),
+  rejectionReason: text("rejection_reason"),
+  // 발급된 카드 ID (승인 시)
+  issuedCardId: varchar("issued_card_id", { length: 36 }),
+  // 메타
+  expiresInDays: int("expires_in_days").default(365),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+});
+export type PersonaCardRequest = typeof personaCardRequests.$inferSelect;
+export type InsertPersonaCardRequest = typeof personaCardRequests.$inferInsert;
+
+// ─── Persona Issued Cards: 발급 완료된 서명 카드 ────────────────────────────
+export const personaIssuedCards = mysqlTable("persona_issued_cards", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  requestId: varchar("request_id", { length: 36 }).notNull(),
+  // 카드 정보
+  subjectDid: varchar("subject_did", { length: 128 }).notNull(),
+  displayName: varchar("display_name", { length: 100 }).notNull(),
+  issuerDid: varchar("issuer_did", { length: 128 }).notNull().default("did:mip:issuer:mip-engine-v1"),
+  // 서명된 카드 JSON (전체)
+  signedCardJson: text("signed_card_json").notNull(),
+  // 메타
+  algorithm: varchar("algorithm", { length: 20 }).notNull().default("Ed25519"),
+  issuedAt: bigint("issued_at", { mode: "number" }).notNull(),
+  expiresAt: bigint("expires_at", { mode: "number" }).notNull(),
+  revokedAt: bigint("revoked_at", { mode: "number" }),
+  issuedBy: varchar("issued_by", { length: 64 }).notNull(), // admin openId
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+});
+export type PersonaIssuedCard = typeof personaIssuedCards.$inferSelect;
+export type InsertPersonaIssuedCard = typeof personaIssuedCards.$inferInsert;

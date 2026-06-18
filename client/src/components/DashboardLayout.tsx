@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { Activity, LayoutDashboard, LogOut, PanelLeft, Package, Shield, ShieldAlert, Cpu, FileSearch, Swords, ScrollText, BookOpen, BarChart2, Brain } from "lucide-react";
+import { Activity, LayoutDashboard, LogOut, PanelLeft, Package, Shield, ShieldAlert, Cpu, FileSearch, Swords, ScrollText, BookOpen, BarChart2, Brain, CreditCard } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -38,8 +38,9 @@ const menuItems = [
   { icon: ScrollText, label: "감사 로그", path: "/audit" },
   { icon: Brain, label: "Decision Core", path: "/decision-core" },
   { icon: BarChart2, label: "SDK 연계 현황", path: "/sdk-monitor" },
+  { icon: CreditCard, label: "카드 발급", path: "/card-issuance", adminOnly: true },
   { icon: BookOpen, label: "이용 가이드", path: "/guide" },
-];
+] as const;
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
 const DEFAULT_WIDTH = 280;
@@ -189,7 +190,7 @@ function DashboardLayoutContent({
 
           <SidebarContent className="gap-0">
             <SidebarMenu className="px-2 py-1">
-              {menuItems.map(item => {
+              {menuItems.filter(item => !('adminOnly' in item && item.adminOnly) || user?.role === 'admin').map(item => {
                 const isActive = location === item.path;
                 return (
                   <SidebarMenuItem key={item.path}>

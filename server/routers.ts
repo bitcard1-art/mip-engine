@@ -3,7 +3,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
 import { mipRouter } from "./routers/mip";
-
+import { adminCardsRouter } from "./routers/admin-cards";
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -15,6 +15,7 @@ export const appRouter = router({
     }),
   }),
   mip: mipRouter,
+  adminCards: adminCardsRouter,
 });
 
 export type AppRouter = typeof appRouter;

@@ -401,3 +401,19 @@
 - [x] tRPC 프로시저: decisionCore.run에서 결과를 DB에 저장
 - [x] tRPC 프로시저: decisionCore.logs 추가 (이력 조회)
 - [x] DecisionCorePage.tsx: 페이지 로드 시 DB에서 이력 조회 + 실행 이력 탭 연동
+
+## Phase 14: 관리자 페르소나 카드 발급 승인 페이지
+
+- [x] DB 스키마: persona_card_requests 테이블 (요청/승인/거부 상태, DID, 페이로드)
+- [x] DB 스키마: persona_issued_cards 테이블 (발급 완료 카드, 서명, 만료일)
+- [x] MIP 개인키 환경변수 등록 (MIP_ISSUER_PRIVATE_KEY)
+- [x] tRPC: admin.cardRequests.list (대기 목록 조회)
+- [x] tRPC: admin.cardRequests.approve (승인 + Ed25519 서명 생성)
+- [x] tRPC: admin.cardRequests.reject (거부)
+- [x] tRPC: admin.issuedCards.list (발급 이력 조회)
+- [x] 한결 API: POST /api/hangyeol/card/request (외부 서비스가 카드 발급 요청)
+- [x] 관리자 UI: CardIssuancePage.tsx (발급 승인 대시보드)
+- [x] 관리자 UI: 카드 상세 확인 + 승인/거부 버튼
+- [x] 관리자 UI: 발급된 카드 JSON 복사 기능
+- [x] admin 권한 체크: 이영도(OWNER)만 접근 가능
+- [x] Vitest 테스트 (6개 통과)
